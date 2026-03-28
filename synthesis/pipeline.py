@@ -52,6 +52,7 @@ def embed_and_store(candidates):
                 "summary": c.get("summary", ""),
                 "source": c.get("source", ""),
                 "location": c.get("location", ""),
+                "years_experience": c.get("years_experience", ""),
                 "resume_text": c.get("summary", ""),
                 "metadata": metadata,
                 "embedding": vector
