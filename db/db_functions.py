@@ -47,3 +47,9 @@ def get_closest_candidates(embedding: List[float], k = 3) -> List[Dict[str, Any]
         .execute()
     )
 	return response.data if response.data else []
+
+def get_all_candidates() -> List[Dict[str, Any]]:
+    """Fetch all candidates from the database."""
+    client = get_supabase_client()
+    response = client.table("candidates").select("full_name", "current_title", "years_experience", "location", "skills", "source").execute()
+    return response.data if response.data else []

@@ -9,7 +9,7 @@ load_dotenv()
 # Local Imports
 from ai.jd_agent import run_jd_agent, get_client
 from ai.cv_agent import score_single_candidate
-from db.db_functions import get_closest_candidates
+from db.db_functions import get_closest_candidates, get_all_candidates
 
 app = Flask(__name__)
 CORS(app)
@@ -145,6 +145,10 @@ def rank_candidates():
     except Exception as e:
         print(f"[DEBUG] Step 2 Error: {e}")
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/list-candidates', methods=['GET'])
+def list_candidates():
+    return get_all_candidates()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5005, debug=True)

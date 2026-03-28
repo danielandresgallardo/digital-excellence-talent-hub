@@ -1,309 +1,521 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RapidResolve AI - Decision Intelligence Hub</title>
     <style>
-        :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg: #f8fafc;
-            --card-bg: #ffffff;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --chat-bg: #f8fafc;
-            --bmw-black: #0f172a;
+      :root {
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --chat-bg: #f8fafc;
+        --bmw-black: #0f172a;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background-color: var(--bg);
+        color: var(--text-main);
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 2rem;
+        line-height: 1.5;
+      }
+
+      h1 {
+        color: var(--bmw-black);
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.025em;
+      }
+      .subtitle {
+        color: var(--text-muted);
+        margin-bottom: 2rem;
+      }
+
+      .card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 28px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        margin-bottom: 24px;
+        border: 1px solid var(--border);
+        animation: fadeIn 0.4s ease;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
         }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg);
-            color: var(--text-main);
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 2rem;
-            line-height: 1.5;
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
+      }
 
-        h1 { color: var(--bmw-black); margin-bottom: 0.5rem; letter-spacing: -0.025em; }
-        .subtitle { color: var(--text-muted); margin-bottom: 2rem; }
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+      }
 
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 28px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            margin-bottom: 24px;
-            border: 1px solid var(--border);
-            animation: fadeIn 0.4s ease;
-        }
+      textarea,
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 15px;
+        margin-bottom: 20px;
+        box-sizing: border-box;
+        font-family: inherit;
+      }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      /* --- LIVE CHAT STYLES --- */
+      #chat-history-container {
+        height: 450px;
+        overflow-y: auto;
+        background: var(--chat-bg);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        border: 1px solid var(--border);
+      }
 
-        label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.025em;}
-        
-        textarea, input[type="text"], input[type="number"] {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 15px;
-            margin-bottom: 20px;
-            box-sizing: border-box;
-            font-family: inherit;
-        }
+      .message-wrapper {
+        display: flex;
+        gap: 12px;
+        max-width: 85%;
+        align-items: flex-start;
+      }
+      .wrapper-ai {
+        align-self: flex-start;
+      }
+      .wrapper-user {
+        align-self: flex-end;
+        flex-direction: row-reverse;
+      }
 
-        /* --- LIVE CHAT STYLES --- */
-        #chat-history-container {
-            height: 450px;
-            overflow-y: auto;
-            background: var(--chat-bg);
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            border: 1px solid var(--border);
-        }
+      .icon-circle {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+      .icon-ai {
+        background: white;
+        border: 1px solid var(--border);
+        color: var(--primary);
+      }
+      .icon-user {
+        background: var(--primary);
+        color: white;
+      }
 
-        .message-wrapper { display: flex; gap: 12px; max-width: 85%; align-items: flex-start; }
-        .wrapper-ai { align-self: flex-start; }
-        .wrapper-user { align-self: flex-end; flex-direction: row-reverse; }
+      .chat-bubble {
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-size: 14.5px;
+        line-height: 1.4;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+      }
+      .bubble-ai {
+        background: white;
+        border: 1px solid var(--border);
+        border-top-left-radius: 2px;
+      }
+      .bubble-user {
+        background: var(--primary);
+        color: white;
+        border-top-right-radius: 2px;
+      }
 
-        .icon-circle {
-            width: 36px; height: 36px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .icon-ai { background: white; border: 1px solid var(--border); color: var(--primary); }
-        .icon-user { background: var(--primary); color: white; }
+      .typing {
+        font-style: italic;
+        color: var(--text-muted);
+        font-size: 13px;
+        margin-bottom: 10px;
+        display: none;
+      }
 
-        .chat-bubble { padding: 12px 16px; border-radius: 12px; font-size: 14.5px; line-height: 1.4; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-        .bubble-ai { background: white; border: 1px solid var(--border); border-top-left-radius: 2px; }
-        .bubble-user { background: var(--primary); color: white; border-top-right-radius: 2px; }
+      /* --- TUNER SLIDERS --- */
+      .criteria-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: #f1f5f9;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+      }
+      .crit-label {
+        flex: 2;
+        border: none !important;
+        background: transparent;
+        margin: 0 !important;
+        font-weight: 600;
+      }
+      .weight-display {
+        font-weight: bold;
+        color: var(--primary);
+        min-width: 24px;
+        text-align: center;
+      }
 
-        .typing { font-style: italic; color: var(--text-muted); font-size: 13px; margin-bottom: 10px; display: none; }
+      .btn-group {
+        display: flex;
+        gap: 12px;
+        margin-top: 20px;
+      }
+      button {
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        font-size: 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+      }
+      button:hover {
+        background-color: var(--primary-hover);
+        transform: translateY(-1px);
+      }
+      button.secondary {
+        background-color: #f1f5f9;
+        color: #475569;
+      }
+      button.danger {
+        background: none;
+        color: #ef4444;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 0 10px;
+      }
 
-        /* --- TUNER SLIDERS --- */
-        .criteria-row { display: flex; align-items: center; gap: 16px; background: #f1f5f9; padding: 12px 16px; border-radius: 8px; margin-bottom: 12px; }
-        .crit-label { flex: 2; border:none !important; background: transparent; margin:0 !important; font-weight: 600;}
-        .weight-display { font-weight: bold; color: var(--primary); min-width: 24px; text-align: center; }
+      .loading-state {
+        display: none;
+        text-align: center;
+        padding: 60px;
+        background: white;
+        border-radius: 12px;
+        border: 2px dashed var(--border);
+      }
+      #step-chat,
+      #step2-verify,
+      #step3-results {
+        display: none;
+      }
 
-        .btn-group { display: flex; gap: 12px; margin-top: 20px; }
-        button {
-            background-color: var(--primary); color: white; border: none; padding: 12px 24px;
-            font-size: 15px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s;
-        }
-        button:hover { background-color: var(--primary-hover); transform: translateY(-1px); }
-        button.secondary { background-color: #f1f5f9; color: #475569; }
-        button.danger { background: none; color: #ef4444; border: none; font-size: 18px; cursor: pointer; padding: 0 10px;}
-
-        .loading-state { display: none; text-align: center; padding: 60px; background: white; border-radius: 12px; border: 2px dashed var(--border);}
-        #step-chat, #step2-verify, #step3-results { display: none; }
-
-        /* --- TALENT CARDS --- */
-        .candidate-card {
-            border-radius: 12px; background: white; padding: 24px; margin-bottom: 20px;
-            border: 1px solid var(--border); border-left: 6px solid var(--bmw-black);
-            transition: transform 0.2s;
-        }
-        .candidate-card:hover { transform: scale(1.01); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-        .score-pill { background: #dcfce7; color: #166534; padding: 4px 12px; border-radius: 9999px; font-weight: 700; font-size: 0.85rem;}
-        .skill-tag { background:#eff6ff; color:#2563eb; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:5px; border:1px solid #dbeafe; display: inline-block; margin-top: 4px;}
+      /* --- TALENT CARDS --- */
+      .candidate-card {
+        border-radius: 12px;
+        background: white;
+        padding: 24px;
+        margin-bottom: 20px;
+        border: 1px solid var(--border);
+        border-left: 6px solid var(--bmw-black);
+        transition: transform 0.2s;
+      }
+      .candidate-card:hover {
+        transform: scale(1.01);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      }
+      .score-pill {
+        background: #dcfce7;
+        color: #166534;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-weight: 700;
+        font-size: 0.85rem;
+      }
+      .skill-tag {
+        background: #eff6ff;
+        color: #2563eb;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        margin-right: 5px;
+        border: 1px solid #dbeafe;
+        display: inline-block;
+        margin-top: 4px;
+      }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <h1>RapidResolve AI</h1>
-    <p class="subtitle">Multi-Agent Crisis Talent Acquisition & Decision Intelligence</p>
-    
+    <p class="subtitle">
+      Multi-Agent Crisis Talent Acquisition & Decision Intelligence
+    </p>
+
     <div id="step1-input" class="card">
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px;">
-            <div>
-                <label>Job Title</label>
-                <input type="text" id="job-title-input" placeholder="e.g. Senior Backend Engineer">
-            </div>
-            <div>
-                <label>Location / Plant</label>
-                <input type="text" id="location-input" placeholder="e.g. Munich FIZ">
-            </div>
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px">
+        <div>
+          <label>Job Title</label>
+          <input
+            type="text"
+            id="job-title-input"
+            placeholder="e.g. Senior Backend Engineer"
+          />
         </div>
-        <label>Detailed Requirements / Scenario</label>
-        <textarea id="jd-input" placeholder="Describe the role or the situation..." style="height: 150px;"></textarea>
-        <button onclick="startDiscovery()">Generate Intelligence Plan</button>
+        <div>
+          <label>Location / Plant</label>
+          <input
+            type="text"
+            id="location-input"
+            placeholder="e.g. Munich FIZ"
+          />
+        </div>
+      </div>
+      <label>Detailed Requirements / Scenario</label>
+      <textarea
+        id="jd-input"
+        placeholder="Describe the role or the situation..."
+        style="height: 150px"
+      ></textarea>
+      <button onclick="startDiscovery()">Generate Intelligence Plan</button>
     </div>
 
     <div id="loading" class="loading-state">
-        <h3 id="loading-text">🕵️ Analyzing...</h3>
+      <h3 id="loading-text">🕵️ Analyzing...</h3>
     </div>
 
     <div id="step-chat" class="card">
-        <h3>🔍 Role Discovery Chat</h3>
-        <p style="color: var(--text-muted); margin-bottom: 15px;">I'm reviewing your request. Let's make sure the search parameters are sharp.</p>
-        
-        <div id="chat-history-container"></div>
-        
-        <p id="typing-indicator" class="typing">Agent is analyzing your input...</p>
+      <h3>🔍 Role Discovery Chat</h3>
+      <p style="color: var(--text-muted); margin-bottom: 15px">
+        I'm reviewing your request. Let's make sure the search parameters are
+        sharp.
+      </p>
 
-        <div style="display:flex; gap: 10px; margin-bottom:10px;">
-            <input type="text" id="chat-user-input" placeholder="Type your answer here..." onkeypress="if(event.key==='Enter') sendChatResponse()">
-            <button onclick="sendChatResponse()">Send</button>
-        </div>
-        
-        <button class="secondary" onclick="forceNextStep()">Skip to Final Tuning</button>
+      <div id="chat-history-container"></div>
+
+      <p id="typing-indicator" class="typing">
+        Agent is analyzing your input...
+      </p>
+
+      <div style="display: flex; gap: 10px; margin-bottom: 10px">
+        <input
+          type="text"
+          id="chat-user-input"
+          placeholder="Type your answer here..."
+          onkeypress="if (event.key === 'Enter') sendChatResponse();"
+        />
+        <button onclick="sendChatResponse()">Send</button>
+      </div>
+
+      <button class="secondary" onclick="forceNextStep()">
+        Skip to Final Tuning
+      </button>
     </div>
 
     <div id="step2-verify" class="card">
-        <h3>Step 2: Verification & Weight Tuning</h3>
-        <label>Target Position Title</label>
-        <input type="text" id="verify-title">
-        
-        <label>Refined Requirements (Optimized for Vector Search)</label>
-        <textarea id="verify-detailed-jd" style="height: 200px; font-size: 14px; line-height: 1.6;"></textarea>
+      <h3>Step 2: Verification & Weight Tuning</h3>
+      <label>Target Position Title</label>
+      <input type="text" id="verify-title" />
 
-        <label>Scoring Criteria & Weights (1-10)</label>
-        <div id="criteria-container"></div>
-        <button class="secondary" onclick="addCriteriaRow('', 5)" style="margin-bottom: 20px;">+ Add Custom Requirement</button>
+      <label>Refined Requirements (Optimized for Vector Search)</label>
+      <textarea
+        id="verify-detailed-jd"
+        style="height: 200px; font-size: 14px; line-height: 1.6"
+      ></textarea>
 
-        <div class="btn-group">
-            <button onclick="rankCandidates()">Execute Search & Rank</button>
-            <button class="secondary" onclick="location.reload()">Reset</button>
-        </div>
+      <label>Scoring Criteria & Weights (1-10)</label>
+      <div id="criteria-container"></div>
+      <button
+        class="secondary"
+        onclick="addCriteriaRow('', 5)"
+        style="margin-bottom: 20px"
+      >
+        + Add Custom Requirement
+      </button>
+
+      <div class="btn-group">
+        <button onclick="rankCandidates()">Execute Search & Rank</button>
+        <button class="secondary" onclick="location.reload()">Reset</button>
+      </div>
     </div>
 
     <div id="step3-results">
-        <div class="card" style="background: var(--bmw-black); color: white;">
-            <h3 style="margin-top:0;">Final Talent Ranking</h3>
-            <p id="final-summary-text" style="opacity: 0.8; font-size: 0.9rem;">Intelligence scoring based on cross-referenced CV analysis and BMW requirements.</p>
-        </div>
-        <div id="candidate-list"></div>
-        <button class="secondary" onclick="location.reload()">New Search</button>
+      <div class="card" style="background: var(--bmw-black); color: white">
+        <h3 style="margin-top: 0">Final Talent Ranking</h3>
+        <p id="final-summary-text" style="opacity: 0.8; font-size: 0.9rem">
+          Intelligence scoring based on cross-referenced CV analysis and BMW
+          requirements.
+        </p>
+      </div>
+      <div id="candidate-list"></div>
+      <button class="secondary" onclick="location.reload()">New Search</button>
     </div>
 
     <script>
-        const API_BASE = window.location.origin;
-        let chatHistory = [];
+      const API_BASE = window.location.origin;
+      let chatHistory = [];
 
-        const ICON_AI = `<div class="icon-circle icon-ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></div>`;
-        const ICON_USER = `<div class="icon-circle icon-user"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>`;
+      const ICON_AI = `<div class="icon-circle icon-ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></div>`;
+      const ICON_USER = `<div class="icon-circle icon-user"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>`;
 
-        function addMessage(role, text) {
-            const container = document.getElementById('chat-history-container');
-            const wrapper = document.createElement('div');
-            wrapper.className = `message-wrapper wrapper-${role}`;
-            const icon = role === 'ai' ? ICON_AI : ICON_USER;
-            wrapper.innerHTML = `${icon}<div class="chat-bubble bubble-${role}">${text}</div>`;
-            container.appendChild(wrapper);
-            container.scrollTop = container.scrollHeight;
+      function addMessage(role, text) {
+        const container = document.getElementById("chat-history-container");
+        const wrapper = document.createElement("div");
+        wrapper.className = `message-wrapper wrapper-${role}`;
+        const icon = role === "ai" ? ICON_AI : ICON_USER;
+        wrapper.innerHTML = `${icon}<div class="chat-bubble bubble-${role}">${text}</div>`;
+        container.appendChild(wrapper);
+        container.scrollTop = container.scrollHeight;
+      }
+
+      async function startDiscovery() {
+        const title = document.getElementById("job-title-input").value;
+        const loc = document.getElementById("location-input").value;
+        const jd = document.getElementById("jd-input").value;
+
+        if (!title || !jd) return alert("Title and Description are required.");
+
+        const fullContext = `TITLE: ${title}\nLOCATION: ${loc}\nDESCRIPTION: ${jd}`;
+        toggleUI("loading", "🕵️ Initializing HR Discovery...");
+
+        try {
+          const res = await fetch(`${API_BASE}/api/chat-discovery`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              job_description: fullContext,
+              history: chatHistory,
+            }),
+          });
+          const data = await res.json();
+
+          if (data.status === "READY") {
+            executeActualParse();
+          } else {
+            document.getElementById("chat-history-container").innerHTML = "";
+            addMessage(
+              "ai",
+              `Hi! I'm reviewing the request for the ${title} role.`,
+            );
+            addMessage("ai", data.message || data.question);
+            toggleUI("chat");
+          }
+        } catch (e) {
+          executeActualParse();
         }
+      }
 
-        async function startDiscovery() {
-            const title = document.getElementById('job-title-input').value;
-            const loc = document.getElementById('location-input').value;
-            const jd = document.getElementById('jd-input').value;
-            
-            if (!title || !jd) return alert("Title and Description are required.");
+      async function sendChatResponse() {
+        const el = document.getElementById("chat-user-input");
+        const msg = el.value;
+        if (!msg) return;
 
-            const fullContext = `TITLE: ${title}\nLOCATION: ${loc}\nDESCRIPTION: ${jd}`;
-            toggleUI('loading', "🕵️ Initializing HR Discovery...");
-            
-            try {
-                const res = await fetch(`${API_BASE}/api/chat-discovery`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ job_description: fullContext, history: chatHistory })
-                });
-                const data = await res.json();
+        addMessage("user", msg);
+        chatHistory.push({ role: "user", text: msg });
+        document.getElementById("jd-input").value +=
+          "\n[Clarification]: " + msg;
+        el.value = "";
+        document.getElementById("typing-indicator").style.display = "block";
 
-                if (data.status === "READY") {
-                    executeActualParse();
-                } else {
-                    document.getElementById('chat-history-container').innerHTML = '';
-                    addMessage('ai', `Hi! I'm reviewing the request for the ${title} role.`);
-                    addMessage('ai', data.message || data.question);
-                    toggleUI('chat');
-                }
-            } catch (e) { executeActualParse(); }
+        const res = await fetch(`${API_BASE}/api/chat-discovery`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            job_description: document.getElementById("jd-input").value,
+            history: chatHistory,
+          }),
+        });
+        const data = await res.json();
+        document.getElementById("typing-indicator").style.display = "none";
+
+        if (data.status === "READY") {
+          addMessage("ai", "Excellent. Switching to plan finalization...");
+          setTimeout(() => {
+            executeActualParse();
+          }, 1200);
+        } else {
+          addMessage("ai", data.message || data.question);
         }
+      }
 
-        async function sendChatResponse() {
-            const el = document.getElementById('chat-user-input');
-            const msg = el.value; if(!msg) return;
-            
-            addMessage('user', msg);
-            chatHistory.push({role: "user", text: msg});
-            document.getElementById('jd-input').value += "\n[Clarification]: " + msg;
-            el.value = "";
-            document.getElementById('typing-indicator').style.display = 'block';
+      async function executeActualParse() {
+        toggleUI("loading", "🧠 Agent 1: Structuring Data...");
+        const res = await fetch(`${API_BASE}/api/parse-jd`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            job_description: document.getElementById("jd-input").value,
+          }),
+        });
+        const data = await res.json();
 
-            const res = await fetch(`${API_BASE}/api/chat-discovery`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ job_description: document.getElementById('jd-input').value, history: chatHistory })
-            });
-            const data = await res.json();
-            document.getElementById('typing-indicator').style.display = 'none';
+        document.getElementById("verify-title").value =
+          document.getElementById("job-title-input").value || data.job_title;
+        document.getElementById("verify-detailed-jd").value = data.detailed_jd;
+        const container = document.getElementById("criteria-container");
+        container.innerHTML = "";
+        if (data.criteria_list)
+          data.criteria_list.forEach((c) => addCriteriaRow(c.label, c.weight));
+        toggleUI("step2");
+      }
 
-            if (data.status === "READY") {
-                addMessage('ai', "Excellent. Switching to plan finalization...");
-                setTimeout(() => { executeActualParse(); }, 1200);
-            } else {
-                addMessage('ai', data.message || data.question);
-            }
-        }
+      function addCriteriaRow(l = "", w = 5) {
+        const div = document.createElement("div");
+        div.className = "criteria-row";
+        div.innerHTML = `<input type="text" class="crit-label" value="${l}"><input type="range" class="crit-slider" min="1" max="10" value="${w}" oninput="this.nextElementSibling.innerText=this.value"><span class="weight-display">${w}</span><button class="danger" onclick="this.parentElement.remove()">✕</button>`;
+        document.getElementById("criteria-container").appendChild(div);
+      }
 
-        async function executeActualParse() {
-            toggleUI('loading', "🧠 Agent 1: Structuring Data...");
-            const res = await fetch(`${API_BASE}/api/parse-jd`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ job_description: document.getElementById('jd-input').value })
-            });
-            const data = await res.json();
+      async function rankCandidates() {
+        const labels = [...document.querySelectorAll(".crit-label")].map(
+          (i) => i.value,
+        );
+        const weights = [...document.querySelectorAll(".crit-slider")].map(
+          (i) => i.value,
+        );
+        const detailedJd = document.getElementById("verify-detailed-jd").value;
+        const query = `Title: ${document.getElementById("verify-title").value}. Info: ${detailedJd}. Weights: ${labels.map((l, i) => l + "(" + weights[i] + ")").join(",")}`;
 
-            document.getElementById('verify-title').value = document.getElementById('job-title-input').value || data.job_title;
-            document.getElementById('verify-detailed-jd').value = data.detailed_jd;
-            const container = document.getElementById('criteria-container');
-            container.innerHTML = '';
-            if(data.criteria_list) data.criteria_list.forEach(c => addCriteriaRow(c.label, c.weight));
-            toggleUI('step2');
-        }
+        toggleUI(
+          "loading",
+          "🚀 Agent 2: Ranking Talent via Vector Analysis...",
+        );
 
-        function addCriteriaRow(l = "", w = 5) {
-            const div = document.createElement('div');
-            div.className = 'criteria-row';
-            div.innerHTML = `<input type="text" class="crit-label" value="${l}"><input type="range" class="crit-slider" min="1" max="10" value="${w}" oninput="this.nextElementSibling.innerText=this.value"><span class="weight-display">${w}</span><button class="danger" onclick="this.parentElement.remove()">✕</button>`;
-            document.getElementById('criteria-container').appendChild(div);
-        }
+        try {
+          const res = await fetch(`${API_BASE}/api/rank-candidates`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ criteria: query }),
+          });
+          const data = await res.json();
+          const list = document.getElementById("candidate-list");
+          list.innerHTML = "";
 
-        async function rankCandidates() {
-            const labels = [...document.querySelectorAll('.crit-label')].map(i => i.value);
-            const weights = [...document.querySelectorAll('.crit-slider')].map(i => i.value);
-            const detailedJd = document.getElementById('verify-detailed-jd').value;
-            const query = `Title: ${document.getElementById('verify-title').value}. Info: ${detailedJd}. Weights: ${labels.map((l,i)=>l+'('+weights[i]+')').join(',')}`;
+          data.candidate_scores.forEach((cand, index) => {
+            const card = document.createElement("div");
+            card.className = "candidate-card";
 
-            toggleUI('loading', "🚀 Agent 2: Ranking Talent via Vector Analysis...");
+            const skillBadges = (cand.skills || [])
+              .map((s) => `<span class="skill-tag">${s}</span>`)
+              .join("");
 
-            try {
-                const res = await fetch(`${API_BASE}/api/rank-candidates`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ criteria: query })
-                });
-                const data = await res.json();
-                const list = document.getElementById('candidate-list');
-                list.innerHTML = '';
-
-                data.candidate_scores.forEach((cand, index) => {
-                    const card = document.createElement('div');
-                    card.className = 'candidate-card';
-                    
-                    const skillBadges = (cand.skills || []).map(s => `<span class="skill-tag">${s}</span>`).join('');
-
-                    card.innerHTML = `
+            card.innerHTML = `
                         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
                             <div>
                                 <h3 style="margin:0; font-size:1.2rem; color:var(--bmw-black);">${cand.full_name}</h3>
@@ -327,34 +539,44 @@
                             <button style="padding: 8px 16px; font-size:0.85rem; flex:1; background:var(--bmw-black);">Initiate Transfer</button>
                         </div>
                     `;
-                    list.appendChild(card);
-                });
-                toggleUI('step3');
-            } catch (e) {
-                alert("Ranking Error: " + e.message);
-                toggleUI('step2');
-            }
+            list.appendChild(card);
+          });
+          toggleUI("step3");
+        } catch (e) {
+          alert("Ranking Error: " + e.message);
+          toggleUI("step2");
         }
+      }
 
-        function toggleUI(step, text = "") {
-            const steps = ['step1-input', 'step-chat', 'step2-verify', 'step3-results', 'loading'];
-            steps.forEach(s => document.getElementById(s).style.display = 'none');
+      function toggleUI(step, text = "") {
+        const steps = [
+          "step1-input",
+          "step-chat",
+          "step2-verify",
+          "step3-results",
+          "loading",
+        ];
+        steps.forEach(
+          (s) => (document.getElementById(s).style.display = "none"),
+        );
 
-            if(step === 'loading') {
-                document.getElementById('loading').style.display = 'block';
-                document.getElementById('loading-text').innerText = text;
-            } else if (step === 'chat') {
-                document.getElementById('step-chat').style.display = 'block';
-            } else if (step === 'step2') {
-                document.getElementById('step2-verify').style.display = 'block';
-            } else if (step === 'step3') {
-                document.getElementById('step3-results').style.display = 'block';
-            } else {
-                document.getElementById('step1-input').style.display = 'block';
-            }
+        if (step === "loading") {
+          document.getElementById("loading").style.display = "block";
+          document.getElementById("loading-text").innerText = text;
+        } else if (step === "chat") {
+          document.getElementById("step-chat").style.display = "block";
+        } else if (step === "step2") {
+          document.getElementById("step2-verify").style.display = "block";
+        } else if (step === "step3") {
+          document.getElementById("step3-results").style.display = "block";
+        } else {
+          document.getElementById("step1-input").style.display = "block";
         }
+      }
 
-        function forceNextStep() { executeActualParse(); }
+      function forceNextStep() {
+        executeActualParse();
+      }
     </script>
-</body>
+  </body>
 </html>
