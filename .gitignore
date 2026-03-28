@@ -50,3 +50,22 @@ instance/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# --- Added by Setup ---
+
+# Environments expanded
+.env.*
+!.env.example
+
+# Testing, Linting and Types
+.pytest_cache/
+.coverage
+htmlcov/
+.nox/
+.tox/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+
+# Jupyter / notebooks
+.ipynb_checkpoints
