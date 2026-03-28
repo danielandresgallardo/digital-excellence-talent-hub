@@ -3,174 +3,302 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RapidResolve AI - Test UI</title>
+    <title>RapidResolve AI - Decision Intelligence Hub</title>
     <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
-            max-width: 800px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            max-width: 1000px;
             margin: 0 auto;
             padding: 2rem;
+            line-height: 1.5;
         }
-        h1 { color: #1a365d; }
+
+        h1 { color: #0f172a; margin-bottom: 0.5rem; letter-spacing: -0.025em; }
+        .subtitle { color: var(--text-muted); margin-bottom: 2rem; }
+
         .card {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
         }
-        textarea {
+
+        label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; }
+        
+        textarea, input[type="text"], input[type="number"] {
             width: 100%;
-            height: 120px;
             padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 16px;
-            margin-bottom: 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 15px;
+            margin-bottom: 20px;
             box-sizing: border-box;
+            font-family: inherit;
+            transition: border-color 0.2s;
         }
+
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Criteria Sliders */
+        .criteria-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: #f1f5f9;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .crit-label { flex: 2; margin-bottom: 0 !important; }
+        .crit-slider { flex: 1; cursor: pointer; }
+        .weight-display { font-weight: bold; color: var(--primary); min-width: 24px; text-align: center; }
+
+        .btn-group { display: flex; gap: 12px; margin-top: 20px; }
         button {
-            background-color: #2563eb;
+            background-color: var(--primary);
             color: white;
             border: none;
             padding: 12px 24px;
-            font-size: 16px;
-            border-radius: 4px;
+            font-size: 15px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.2s;
+            font-weight: 600;
+            transition: all 0.2s;
         }
-        button:hover { background-color: #1d4ed8; }
-        button:disabled { background-color: #93c5fd; cursor: not-allowed; }
-        
-        #loading {
+        button:hover { background-color: var(--primary-hover); transform: translateY(-1px); }
+        button.secondary { background-color: #f1f5f9; color: #475569; }
+        button.secondary:hover { background-color: #e2e8f0; }
+        button.danger { background-color: transparent; color: #ef4444; padding: 8px; }
+
+        .loading-state {
             display: none;
             text-align: center;
-            font-weight: bold;
-            color: #2563eb;
-            margin: 20px 0;
-        }
-        
-        #results-section { display: none; }
-        
-        .candidate-card {
-            border-left: 4px solid #2563eb;
-            background: #f8fafc;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 0 4px 4px 0;
-        }
-        .score-badge {
-            background: #1e40af;
-            color: white;
-            padding: 4px 8px;
+            padding: 60px;
+            background: #fff;
             border-radius: 12px;
-            font-weight: bold;
-            font-size: 14px;
+            border: 2px dashed var(--border);
         }
-        .error { color: #dc2626; font-weight: bold; }
+
+        #step2-verify, #step3-results { display: none; }
+
+        /* Results Styling */
+        .candidate-card {
+            border-radius: 12px;
+            background: white;
+            padding: 24px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            border-left: 6px solid var(--primary);
+        }
+        .score-pill {
+            background: #dcfce7;
+            color: #166534;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
 
-    <h1>RapidResolve AI Tester</h1>
+    <h1>RapidResolve AI</h1>
+    <p class="subtitle">Multi-Agent Crisis Talent Acquisition & Decision Intelligence</p>
     
-    <div class="card" id="input-section">
-        <h3>Submit Crisis Job Description</h3>
-        <textarea id="jd-input" placeholder="Paste your urgent job description or crisis scenario here..."></textarea>
-        <button id="submit-btn" onclick="evaluateCrisis()">Analyze & Rank Candidates</button>
+    <div id="step1-input" class="card">
+        <label>Job Description / Crisis Scenario</label>
+        <textarea id="jd-input" placeholder="Paste the raw requirements or describe the plant crisis here...">Test Job Description: Interim Logistics Crisis Lead
+Location: Debrecen, Hungary (On-site) Urgency: Immediate (Deployment required within 72 hours)
+Context: Due to a sudden disruption in the regional battery supply chain, we require an Interim Logistics Crisis Lead to stabilize production for the Neue Klasse launch. This is a high-risk role where a weak leader could destroy a strong system, while a strong leader is needed to recover a failing one. The successful candidate must navigate high levels of misalignment and cultural friction under extreme time pressure.
+Key Responsibilities:
+Crisis Stabilization: Immediately take over logistics operations to prevent downstream impact on vehicle assembly.
+Stakeholder Management: Coordinate between Production and Quality Heads to ensure seamless throughput despite material shortages.
+Decision Intelligence: Move beyond intuition-heavy decisions to data-backed scenario simulations.
+Required Traits:
+Battle-Tested Leadership: Minimum 10 years in automotive crisis environments.
+Speed to Productivity: Ability to hit the ground running with zero onboarding time.
+Adaptability: Job descriptions are static, but this reality is not; you must adapt priorities in real-time.
+</textarea>
+        <button onclick="parseJD()">Generate Intelligence Plan</button>
     </div>
 
-    <div id="loading">
-        <p>🤖 AI Agents are analyzing criteria and scoring candidates... please wait.</p>
+    <div id="loading" class="loading-state">
+        <h3 id="loading-text">🕵️ Agent 1 is analyzing...</h3>
+        <p>This will take ~5 seconds</p>
     </div>
 
-    <div id="results-section">
-        <div class="card">
-            <h3>1. JD Agent Analysis</h3>
-            <p><strong>Extracted Criteria:</strong> <span id="out-criteria"></span></p>
-            <p><strong>Urgency Score:</strong> <span id="out-urgency"></span>/10</p>
-        </div>
-
-        <div class="card">
-            <h3>2. Ranked Candidates</h3>
-            <div id="candidate-list"></div>
-        </div>
+    <div id="step2-verify" class="card">
+        <h3>Step 2: Verification & Weight Tuning</h3>
+        <p style="color: var(--text-muted); margin-bottom: 24px;">Refine the AI's interpretation. Adjust weights to prioritize specific skills for the ranking engine.</p>
         
-        <button onclick="resetTest()">Test Another JD</button>
+        <label>Target Position Title</label>
+        <input type="text" id="verify-title">
+        
+        <label>Refined Requirements (Used for Vector Search)</label>
+        <textarea id="verify-detailed-jd" style="height: 100px;"></textarea>
+
+        <label>Scoring Criteria & Weights (1 = Low, 10 = Critical)</label>
+        <div id="criteria-container"></div>
+        <button class="secondary" onclick="addCriteriaRow('', 5)" style="margin-bottom: 20px;">+ Add Custom Requirement</button>
+
+        <div style="width: 180px;">
+            <label>Crisis Urgency</label>
+            <input type="number" id="verify-urgency" min="1" max="10">
+        </div>
+
+        <div class="btn-group">
+            <button onclick="rankCandidates()">Execute Search & Rank</button>
+            <button class="secondary" onclick="location.reload()">Reset</button>
+        </div>
+    </div>
+
+    <div id="step3-results">
+        <div class="card" style="background: #1e293b; color: white;">
+            <h3 style="margin-top:0;">Final Talent Ranking</h3>
+            <p id="final-summary-text" style="opacity: 0.8; font-size: 0.95rem;"></p>
+        </div>
+        <div id="candidate-list"></div>
+        <button class="secondary" onclick="location.reload()">New Search</button>
     </div>
 
     <script>
-        async function evaluateCrisis() {
+        const API_BASE = window.location.origin;
+
+        function addCriteriaRow(label = "", weight = 5) {
+            const container = document.getElementById('criteria-container');
+            const div = document.createElement('div');
+            div.className = 'criteria-row';
+            div.innerHTML = `
+                <input type="text" class="crit-label" value="${label}" placeholder="e.g. BMW Experience">
+                <input type="range" class="crit-slider" min="1" max="10" value="${weight}" 
+                       oninput="this.nextElementSibling.innerText = this.value">
+                <span class="weight-display">${weight}</span>
+                <button class="danger" onclick="this.parentElement.remove()">✕</button>
+            `;
+            container.appendChild(div);
+        }
+
+        async function parseJD() {
             const jdText = document.getElementById('jd-input').value;
-            const btn = document.getElementById('submit-btn');
-            const loading = document.getElementById('loading');
-            const resultsSection = document.getElementById('results-section');
-            const inputSection = document.getElementById('input-section');
-            const candidateList = document.getElementById('candidate-list');
+            if (!jdText) return alert("Please enter text");
+
+            toggleUI('loading', "🕵️ Agent 1: Structuring Decision Criteria...");
             
-            if (!jdText.trim()) {
-                alert("Please enter a job description.");
-                return;
-            }
-
-            // UI state: loading
-            btn.disabled = true;
-            loading.style.display = 'block';
-            resultsSection.style.display = 'none';
-            candidateList.innerHTML = '';
-
             try {
-                // Call the local Flask API
-                const response = await fetch('http://127.0.0.1:5005/api/evaluate-crisis', {
+                const res = await fetch(`${API_BASE}/api/parse-jd`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ job_description: jdText })
                 });
+                const data = await res.json();
 
-                const data = await response.json();
+                // Populate Fields
+                document.getElementById('verify-title').value = data.job_title || "";
+                document.getElementById('verify-detailed-jd').value = data.detailed_jd || "";
+                document.getElementById('verify-urgency').value = data.urgency_score || 5;
 
-                if (!response.ok) {
-                    throw new Error(data.error || "Server error occurred");
+                // Build dynamic rows
+                const container = document.getElementById('criteria-container');
+                container.innerHTML = '';
+                if(data.criteria_list) {
+                    data.criteria_list.forEach(c => addCriteriaRow(c.label, c.weight));
                 }
 
-                // Populate JD Analysis
-                document.getElementById('out-criteria').innerText = data.jd_analysis.criteria;
-                document.getElementById('out-urgency').innerText = data.jd_analysis.urgency_score;
-
-                // Populate Candidates
-                data.candidate_scores.forEach((cand, index) => {
-                    const card = document.createElement('div');
-                    card.className = 'candidate-card';
-                    card.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <h4 style="margin: 0;">Rank #${index + 1} (ID: ${cand.candidate_id})</h4>
-                            <span class="score-badge">${cand.fit_score}% Fit</span>
-                        </div>
-                        <p><strong>AI Trade-off Reasoning:</strong> ${cand.tradeoff_reasoning}</p>
-                    `;
-                    candidateList.appendChild(card);
-                });
-
-                // UI state: show results
-                inputSection.style.display = 'none';
-                loading.style.display = 'none';
-                resultsSection.style.display = 'block';
-
-            } catch (error) {
-                loading.style.display = 'none';
-                btn.disabled = false;
-                candidateList.innerHTML = `<p class="error">Error: ${error.message}</p>`;
-                resultsSection.style.display = 'block';
+                toggleUI('step2');
+            } catch (e) {
+                alert("Error: " + e.message);
+                toggleUI('step1');
             }
         }
 
-        function resetTest() {
-            document.getElementById('jd-input').value = '';
-            document.getElementById('submit-btn').disabled = false;
-            document.getElementById('results-section').style.display = 'none';
-            document.getElementById('input-section').style.display = 'block';
+        async function rankCandidates() {
+            // Collect weighted list
+            const critLabels = [...document.querySelectorAll('.crit-label')].map(i => i.value);
+            const critWeights = [...document.querySelectorAll('.crit-slider')].map(i => i.value);
+            const detailedJd = document.getElementById('verify-detailed-jd').value;
+            
+            // Build the final summary string to pass to the Backend
+            const weightedSummary = critLabels.map((l, i) => `${l} (Importance: ${critWeights[i]}/10)`).join(", ");
+            const finalQuery = `Position: ${document.getElementById('verify-title').value}. Requirements: ${detailedJd}. Priority Weights: ${weightedSummary}`;
+
+            toggleUI('loading', "🚀 Agent 2: Cross-referencing Talent Pool & Scoring Fits...");
+
+            try {
+                const res = await fetch(`${API_BASE}/api/rank-candidates`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ criteria: finalQuery })
+                });
+                const data = await res.json();
+                const list = document.getElementById('candidate-list');
+                list.innerHTML = '';
+
+                // Check if the data actually contains the scores list
+                if (data && data.candidate_scores && Array.isArray(data.candidate_scores)) {
+                    data.candidate_scores.forEach((cand, index) => {
+                        const card = document.createElement('div');
+                        card.className = 'candidate-card';
+                        card.innerHTML = `
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                                <h4 style="margin:0;">Rank #${index + 1}: ${cand.candidate_id || 'Unknown'}</h4>
+                                <span class="score-pill">${cand.fit_score || 0}% Fit</span>
+                            </div>
+                            <p style="font-size:0.95rem; color:#475569;"><strong>Reasoning:</strong> ${cand.tradeoff_reasoning || 'No reasoning provided.'}</p>
+                        `;
+                        list.appendChild(card);
+                    });
+                } else {
+                    // If the list is missing, show a helpful message instead of crashing
+                    list.innerHTML = `<div class="error">
+                        <h4>No Candidates Found</h4>
+                        <p>The server returned an empty list or an error: ${data.error || 'Unknown Error'}</p>
+                    </div>`;
+                }
+
+                toggleUI('step3');
+            } catch (e) {
+                alert("Ranking Error: " + e.message);
+                toggleUI('step2');
+            }
+        }
+
+        function toggleUI(step, text = "") {
+            document.getElementById('step1-input').style.display = 'none';
+            document.getElementById('step2-verify').style.display = 'none';
+            document.getElementById('step3-results').style.display = 'none';
+            document.getElementById('loading').style.display = 'none';
+
+            if(step === 'loading') {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('loading-text').innerText = text;
+            } else if(step === 'step1') {
+                document.getElementById('step1-input').style.display = 'block';
+            } else if(step === 'step2') {
+                document.getElementById('step2-verify').style.display = 'block';
+            } else if(step === 'step3') {
+                document.getElementById('step3-results').style.display = 'block';
+            }
         }
     </script>
 </body>

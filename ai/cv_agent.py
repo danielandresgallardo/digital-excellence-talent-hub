@@ -10,19 +10,23 @@ async def score_single_candidate(candidate, criteria_json):
     print(f"[DEBUG] -> CV Agent evaluating {candidate['id']}...")
     # Constrain the model output to a strict JSON payload for downstream parsing.
     prompt = f"""
-    Evaluate this candidate against the crisis criteria. 
+    Evaluate this candidate for the BMW crisis role.
     Criteria: {criteria_json}
     Candidate Profile: {candidate['resume_text']}
     
-    Return ONLY valid JSON:
-    {{"candidate_id": "{candidate['id']}", "fit_score": 85, "tradeoff_reasoning": "High skill, but slow onboarding."}}
+    Return ONLY valid JSON with these EXACT keys:
+    {{
+      "candidate_id": "{candidate['id']}",
+      "fit_score": 85,
+      "tradeoff_reasoning": "Explain why they fit or the risks involved."
+    }}
     """
     loop = asyncio.get_event_loop()
     # Run the blocking SDK call in a thread so async callers are not blocked.
     response = await loop.run_in_executor(
         None, 
         lambda: client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-3.1-flash-lite-preview',
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
