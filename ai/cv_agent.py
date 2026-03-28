@@ -3,10 +3,12 @@ import asyncio
 from google import genai
 from google.genai import types
 
+# Reuse a single client instance for all candidate evaluations.
 client = genai.Client(api_key=os.environ.get("GEMINI_KEY_CV"))
 
 async def score_single_candidate(candidate, criteria_json):
     print(f"[DEBUG] -> CV Agent evaluating {candidate['id']}...")
+    # Constrain the model output to a strict JSON payload for downstream parsing.
     prompt = f"""
     Evaluate this candidate against the crisis criteria. 
     Criteria: {criteria_json}
@@ -16,6 +18,7 @@ async def score_single_candidate(candidate, criteria_json):
     {{"candidate_id": "{candidate['id']}", "fit_score": 85, "tradeoff_reasoning": "High skill, but slow onboarding."}}
     """
     loop = asyncio.get_event_loop()
+    # Run the blocking SDK call in a thread so async callers are not blocked.
     response = await loop.run_in_executor(
         None, 
         lambda: client.models.generate_content(
