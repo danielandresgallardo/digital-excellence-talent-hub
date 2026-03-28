@@ -9,7 +9,6 @@ load_dotenv()
 # Local Imports
 from ai.jd_agent import run_jd_agent, get_client
 from ai.cv_agent import score_single_candidate
-# We no longer need local cosine_similarity since Supabase handles it
 from db.db_functions import get_closest_candidates
 
 app = Flask(__name__)
@@ -32,71 +31,72 @@ def parse_jd():
         print(f"[DEBUG] Step 1 Error: {e}")
         return jsonify({"error": str(e)}), 500
 
-# --- STEP 1.5: DISCOVERY CHAT ---
+# --- STEP 2: DISCOVERY CHAT ---
 @app.route('/api/chat-discovery', methods=['POST'])
 def chat_discovery():
     data = request.json
-    history = data.get('history', [])  # The conversation so far
+    history = data.get('history', [])
     jd_text = data.get('job_description')
     
     prompt = f"""
-    You are a Senior Technical Recruiter for BMW. You're a "Gatekeeper of Quality," but you talk like a human, not a corporate script. 
-    Avoid starting every response with generic phrases like "To ensure we align the right talent..." 
+    You are a Senior Recruitment Consultant at BMW. You are talking to a Hiring Manager.
+    Your goal is precision. A vague JD leads to poor talent matches. 
+    
+    CRITICAL: For Internships and Junior roles, "Python" is not enough. You must know the 
+    application domain (e.g., Computer Vision, DevOps, Web, or Data Science).
 
-    INPUT DATA (Initial JD + All Chat History): 
-    {jd_text}
-    {history}
+    INPUT DATA: {jd_text}
+    HISTORY: {history}
 
-    STEP 1: ROLE COMPLEXITY ASSESSMENT
-    - Is this a "General/Entry" role (e.g., Janitor, Intern, General Labor)? 
-    - Or a "Specialized/Technical" role (e.g., Engineer, SAP Consultant, Crisis Lead)?
-
-    STEP 2: ADAPTIVE CHECKLIST
-    1. [LOCATION]: Always required.
-    2. [TECHNICAL DOMAIN]: 
-       - For General roles: Only ask if the specific department/plant is missing. 
-       - For Technical roles: Must have specific tools/languages/certs (SAP, C++, ISO).
-    3. [SENIORITY/EXPERIENCE]: 
-       - For General roles: A simple "any experience level" is enough to pass.
-       - For Technical roles: Must define years or level (Senior, Lead).
-    4. [URGENCY]: Always required to prioritize the pipeline.
+    DIAGNOSTIC CRITERIA:
+    1. ROLE TYPE: Technical/Specialized, Intern/Junior, or General/Support?
+    2. SUFFICIENCY: Is there enough context to generate a 200-word *specific* summary?
+       - BAD (Generic): "Intern will code in Python and help the team."
+       - GOOD (Specific): "Intern will use Python/OpenCV to optimize battery thermal simulations."
 
     DECISION LOGIC:
-    - If the role is "General" and you have Location and Urgency, return {{"status": "READY"}}.
-    - If the role is "Technical" and is missing specific stack/tools or seniority, return {{"status": "CHAT", "message": "Ask a sharp, professional, and natural follow-up question."}}.
-    - If the user pushes back or says "I don't have more details," just return {{"status": "READY"}}.
-    - If all items are clearly defined for the role type, return {{"status": "READY"}}.
+    - If the input is generic (e.g., just 'Python Intern' + 'Munich'), you MUST ask for the 
+      specific project focus or department goals.
+    - For Interns: Do not return 'READY' until you have at least one specific project 
+      context or a sub-technology (e.g. PyTorch, Django, AWS).
+    - For Technical/Senior roles: Maintain the high bar for tech stack and seniority.
+    - If the user provides a specific project/domain or pushes back, return {{"status": "READY"}}.
 
-    STRICT RULES:
-    - NO REPETITIVE INTROS: Start directly with the question or a very brief, natural acknowledgment.
-    - Do not demand technical certifications for non-technical roles.
-    - Maintain a professional, direct, and grounded BMW-consultant tone.
+    IMPORTANT JSON KEYS:
+    - Use "status": "CHAT" or "status": "READY"
+    - If status is CHAT, use the key "message" for your question.
+    
+    CHAT RULES:
+    - NO FILLER: Skip "To ensure we source..." 
+    - BE NATURALLY CURIOUS: Ask like a real recruiter: "Python is a broad field—what's the main project this intern will be tackling?"
+    - MAX 2-3 QUESTIONS: Don't interrogate forever, but don't accept "vague" as an answer.
 
-    Return ONLY valid JSON.
+    Return ONLY JSON.
     """
     
-    from ai.jd_agent import get_client
     client = get_client()
-    response = client.models.generate_content(
-        model='gemini-3.1-flash-lite-preview',
-        contents=prompt,
-        config=types.GenerateContentConfig(response_mime_type="application/json")
-    )
-    print(f"[DEBUG] Gatekeeper Decision: {response.text}")
-    return jsonify(json.loads(response.text))
+    try:
+        response = client.models.generate_content(
+            model='gemini-3.1-flash-lite-preview', # Using stable Flash for discovery
+            contents=prompt,
+            config=types.GenerateContentConfig(response_mime_type="application/json")
+        )
+        print(f"[DEBUG] Gatekeeper Decision: {response.text}")
+        return jsonify(json.loads(response.text))
+    except Exception as e:
+        print(f"[ERROR] Discovery: {e}")
+        return jsonify({"status": "READY"})
 
-# --- STEP 2: RANK BASED ON VERIFIED DATA ---
+# --- STEP 3: RANK BASED ON VERIFIED DATA ---
 @app.route('/api/rank-candidates', methods=['POST'])
 def rank_candidates():
     data = request.json
-    # This matches the detailed summary from your Verify Page
     verified_criteria = data.get('criteria') 
     
     if not verified_criteria:
         return jsonify({"error": "No criteria provided"}), 400
 
     try:
-        # 1. Get Embedding for the verified requirements
         print(f"[DEBUG] Step 2: Embedding verified criteria...")
         jd_client = get_client()
         res = jd_client.models.embed_content(
@@ -105,37 +105,42 @@ def rank_candidates():
         )
         query_vec = res.embeddings[0].values
 
-        # 2. Vector Search via Supabase RPC
         print(f"[DEBUG] Querying Supabase match_candidates...")
         top_candidates = get_closest_candidates(query_vec, k=3)
 
         if not top_candidates:
-            print("[DEBUG] No candidates returned from DB.")
             return jsonify({"status": "success", "candidate_scores": []})
 
-        # 3. Deep Scoring with Agent 2 (CV Agent)
-        print(f"[DEBUG] Scoring {len(top_candidates)} candidates with Agent 2...")
         async def run_scoring():
+            # Pass the full candidate dict to the scoring agent
             tasks = [score_single_candidate(c, verified_criteria) for c in top_candidates]
             return await asyncio.gather(*tasks)
         
         results_raw = asyncio.run(run_scoring())
         
-        # 4. Parse AI reasoning and sort by fit_score
         parsed_results = []
-        for r in results_raw:
+        for i, r in enumerate(results_raw):
             try:
-                parsed_results.append(json.loads(r))
+                ai_analysis = json.loads(r)
+                # --- NEW: MAP METADATA TO RESULTS ---
+                original_meta = top_candidates[i].get('metadata', {})
+                
+                # Combine AI reasoning with DB metadata
+                enriched_result = {
+                    "full_name": original_meta.get("full_name", "Internal Candidate"),
+                    "current_title": original_meta.get("current_title", "Specialist"),
+                    "years_experience": original_meta.get("years_experience", "N/A"),
+                    "location": original_meta.get("location") or "Munich (Main)",
+                    "skills": original_meta.get("skills", [])[:5], # Top 5
+                    "fit_score": ai_analysis.get("fit_score", 0),
+                    "tradeoff_reasoning": ai_analysis.get("tradeoff_reasoning", "No reasoning provided.")
+                }
+                parsed_results.append(enriched_result)
             except Exception as e:
-                print(f"[DEBUG] CV Agent JSON parse error: {e} | Raw: {r}")
+                print(f"[DEBUG] Result parsing error: {e}")
 
         parsed_results.sort(key=lambda x: x.get('fit_score', 0), reverse=True)
-
-        print(f"[DEBUG] Sending {len(parsed_results)} results to frontend.")
-        return jsonify({
-            "status": "success", 
-            "candidate_scores": parsed_results
-        })
+        return jsonify({"status": "success", "candidate_scores": parsed_results})
 
     except Exception as e:
         print(f"[DEBUG] Step 2 Error: {e}")
