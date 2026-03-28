@@ -13,7 +13,7 @@
             --text-main: #1e293b;
             --text-muted: #64748b;
             --border: #e2e8f0;
-            --chat-bubble: #f1f5f9;
+            --chat-bg: #f8fafc;
         }
 
         body {
@@ -52,16 +52,59 @@
             margin-bottom: 20px;
             box-sizing: border-box;
             font-family: inherit;
-            transition: border-color 0.2s;
         }
 
-        textarea:focus, input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        /* --- LIVE CHAT STYLES --- */
+        #chat-history-container {
+            height: 450px;
+            overflow-y: auto;
+            background: var(--chat-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            border: 1px solid var(--border);
         }
 
-        /* Criteria Sliders */
+        .message-wrapper {
+            display: flex;
+            gap: 12px;
+            max-width: 85%;
+            align-items: flex-start;
+        }
+
+        .wrapper-ai { align-self: flex-start; }
+        .wrapper-user { align-self: flex-end; flex-direction: row-reverse; }
+
+        .icon-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .icon-ai { background: white; border: 1px solid var(--border); color: var(--primary); }
+        .icon-user { background: var(--primary); color: white; }
+
+        .chat-bubble {
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14.5px;
+            line-height: 1.4;
+        }
+
+        .bubble-ai { background: white; color: var(--text-main); border: 1px solid var(--border); border-top-left-radius: 2px; }
+        .bubble-user { background: var(--primary); color: white; border-top-right-radius: 2px; }
+
+        .typing { font-style: italic; color: var(--text-muted); font-size: 13px; margin-bottom: 10px; display: none; }
+
+        /* --- CRITERIA SLIDERS --- */
         .criteria-row {
             display: flex;
             align-items: center;
@@ -71,19 +114,8 @@
             border-radius: 8px;
             margin-bottom: 12px;
         }
-
         .crit-label { flex: 2; margin-bottom: 0 !important; }
-        .crit-slider { flex: 1; cursor: pointer; }
         .weight-display { font-weight: bold; color: var(--primary); min-width: 24px; text-align: center; }
-
-        /* Chat Styles */
-        .chat-box {
-            background: var(--chat-bubble);
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            border-left: 4px solid var(--primary);
-        }
 
         .btn-group { display: flex; gap: 12px; margin-top: 20px; }
         button {
@@ -99,36 +131,17 @@
         }
         button:hover { background-color: var(--primary-hover); transform: translateY(-1px); }
         button.secondary { background-color: #f1f5f9; color: #475569; }
-        button.danger { background-color: transparent; color: #ef4444; padding: 8px; border:none; cursor:pointer;}
+        button.danger { background: none; color: #ef4444; border: none; cursor: pointer; padding: 0 10px; font-size: 18px;}
 
-        .loading-state {
-            display: none;
-            text-align: center;
-            padding: 60px;
-            background: #fff;
-            border-radius: 12px;
-            border: 2px dashed var(--border);
-        }
+        .loading-state { display: none; text-align: center; padding: 60px; border: 2px dashed var(--border); border-radius: 12px; background: white;}
 
         #step-chat, #step2-verify, #step3-results { display: none; }
 
         .candidate-card {
-            border-radius: 12px;
-            background: white;
-            padding: 24px;
-            margin-bottom: 16px;
-            border: 1px solid var(--border);
-            border-left: 6px solid var(--primary);
+            border-radius: 12px; background: white; padding: 24px; margin-bottom: 16px;
+            border: 1px solid var(--border); border-left: 6px solid var(--primary);
         }
-        .score-pill {
-            background: #dcfce7;
-            color: #166534;
-            padding: 4px 12px;
-            border-radius: 9999px;
-            font-weight: 700;
-            font-size: 0.85rem;
-        }
-        .error { color: #dc2626; background: #fef2f2; padding: 15px; border-radius: 8px; }
+        .score-pill { background: #dcfce7; color: #166534; padding: 4px 12px; border-radius: 9999px; font-weight: 700; font-size: 0.85rem;}
     </style>
 </head>
 <body>
@@ -138,57 +151,43 @@
     
     <div id="step1-input" class="card">
         <label>Job Description / Crisis Scenario</label>
-        <textarea id="jd-input" placeholder="Paste requirements here...">Test Job Description: Interim Logistics Crisis Lead
-Location: Debrecen, Hungary (On-site) Urgency: Immediate (Deployment required within 72 hours)
-Context: Due to a sudden disruption in the regional battery supply chain, we require an Interim Logistics Crisis Lead to stabilize production for the Neue Klasse launch. This is a high-risk role where a weak leader could destroy a strong system, while a strong leader is needed to recover a failing one. The successful candidate must navigate high levels of misalignment and cultural friction under extreme time pressure.
-Key Responsibilities:
-Crisis Stabilization: Immediately take over logistics operations to prevent downstream impact on vehicle assembly.
-Stakeholder Management: Coordinate between Production and Quality Heads to ensure seamless throughput despite material shortages.
-Decision Intelligence: Move beyond intuition-heavy decisions to data-backed scenario simulations.
-Required Traits:
-Battle-Tested Leadership: Minimum 10 years in automotive crisis environments.
-Speed to Productivity: Ability to hit the ground running with zero onboarding time.
-Adaptability: Job descriptions are static, but this reality is not; you must adapt priorities in real-time.
-</textarea>
+        <textarea id="jd-input" placeholder="Paste requirements here..." style="height: 150px;"></textarea>
         <button onclick="startDiscovery()">Generate Intelligence Plan</button>
     </div>
 
     <div id="loading" class="loading-state">
         <h3 id="loading-text">🕵️ Agent 1 is analyzing...</h3>
-        <p>This will take ~5 seconds</p>
     </div>
 
     <div id="step-chat" class="card">
-        <h3>🔍 Role Discovery</h3>
-        <p style="color: var(--text-muted);">The AI needs more context to refine the search parameters.</p>
-        <div class="chat-box">
-            <p id="chat-bot-msg"><strong>AI Assistant:</strong> Analyzing sufficiency...</p>
+        <h3>🔍 Role Discovery Chat</h3>
+        <p style="color: var(--text-muted); margin-bottom: 15px;">Refining requirements for high-precision search.</p>
+        
+        <div id="chat-history-container"></div>
+        
+        <p id="typing-indicator" class="typing">Agent is analyzing your input...</p>
+
+        <div style="display:flex; gap: 10px; margin-bottom:10px;">
+            <input type="text" id="chat-user-input" placeholder="Type your answer here..." onkeypress="if(event.key==='Enter') sendChatResponse()">
+            <button onclick="sendChatResponse()">Send</button>
         </div>
-        <input type="text" id="chat-user-input" placeholder="Type your answer here..." onkeypress="if(event.key==='Enter') sendChatResponse()">
-        <div class="btn-group">
-            <button onclick="sendChatResponse()">Send Message</button>
-            <button class="secondary" onclick="forceNextStep()">Skip to Final Tuning</button>
-        </div>
+        
+        <button class="secondary" onclick="forceNextStep()">Skip to Final Tuning</button>
     </div>
 
     <div id="step2-verify" class="card">
         <h3>Step 2: Verification & Weight Tuning</h3>
-        <p style="color: var(--text-muted); margin-bottom: 24px;">Refine the AI's interpretation. Adjust weights to prioritize specific skills for the ranking engine.</p>
+        <p style="color: var(--text-muted); margin-bottom: 24px;">Refine the AI's interpretation. Adjust weights to prioritize specific skills.</p>
         
         <label>Target Position Title</label>
         <input type="text" id="verify-title">
         
-        <label>Refined Requirements (Used for Vector Search)</label>
-        <textarea id="verify-detailed-jd" style="height: 100px;"></textarea>
+        <label>Refined Requirements (Optimized for Vector Search)</label>
+        <textarea id="verify-detailed-jd" style="height: 200px; font-size: 14px; line-height: 1.6;"></textarea>
 
-        <label>Scoring Criteria & Weights (1 = Low, 10 = Critical)</label>
+        <label>Scoring Criteria & Weights (1-10)</label>
         <div id="criteria-container"></div>
         <button class="secondary" onclick="addCriteriaRow('', 5)" style="margin-bottom: 20px;">+ Add Custom Requirement</button>
-
-        <div style="width: 180px;">
-            <label>Crisis Urgency</label>
-            <input type="number" id="verify-urgency" min="1" max="10">
-        </div>
 
         <div class="btn-group">
             <button onclick="rankCandidates()">Execute Search & Rank</button>
@@ -199,7 +198,7 @@ Adaptability: Job descriptions are static, but this reality is not; you must ada
     <div id="step3-results">
         <div class="card" style="background: #1e293b; color: white;">
             <h3 style="margin-top:0;">Final Talent Ranking</h3>
-            <p id="final-summary-text" style="opacity: 0.8; font-size: 0.95rem;"></p>
+            <p id="final-summary-text" style="opacity: 0.8;"></p>
         </div>
         <div id="candidate-list"></div>
         <button class="secondary" onclick="location.reload()">New Search</button>
@@ -209,25 +208,24 @@ Adaptability: Job descriptions are static, but this reality is not; you must ada
         const API_BASE = window.location.origin;
         let chatHistory = [];
 
-        function addCriteriaRow(label = "", weight = 5) {
-            const container = document.getElementById('criteria-container');
-            const div = document.createElement('div');
-            div.className = 'criteria-row';
-            div.innerHTML = `
-                <input type="text" class="crit-label" value="${label}" placeholder="Requirement...">
-                <input type="range" class="crit-slider" min="1" max="10" value="${weight}" 
-                       oninput="this.nextElementSibling.innerText = this.value">
-                <span class="weight-display">${weight}</span>
-                <button class="danger" onclick="this.parentElement.remove()">✕</button>
-            `;
-            container.appendChild(div);
+        const ICON_AI = `<div class="icon-circle icon-ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></div>`;
+        const ICON_USER = `<div class="icon-circle icon-user"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>`;
+
+        function addMessage(role, text) {
+            const container = document.getElementById('chat-history-container');
+            const wrapper = document.createElement('div');
+            wrapper.className = `message-wrapper wrapper-${role}`;
+            const icon = role === 'ai' ? ICON_AI : ICON_USER;
+            wrapper.innerHTML = `${icon}<div class="chat-bubble bubble-${role}">${text}</div>`;
+            container.appendChild(wrapper);
+            container.scrollTop = container.scrollHeight;
         }
 
         async function startDiscovery() {
             const jdText = document.getElementById('jd-input').value;
             if (!jdText) return alert("Please enter text");
 
-            toggleUI('loading', "🕵️ Gatekeeper: Checking JD sufficiency...");
+            toggleUI('loading', "🕵️ Initializing HR Discovery Agent...");
             
             try {
                 const res = await fetch(`${API_BASE}/api/chat-discovery`, {
@@ -237,37 +235,53 @@ Adaptability: Job descriptions are static, but this reality is not; you must ada
                 });
                 const data = await res.json();
 
-                if (data.status === "CHAT") {
-                    document.getElementById('chat-bot-msg').innerHTML = `<strong>AI Assistant:</strong> ${data.message}`;
-                    toggleUI('chat');
-                } else {
+                if (data.status === "READY") {
                     executeActualParse();
+                } else {
+                    addMessage('ai', "Hello! I've received your job description. Let's refine a few key details to ensure a perfect match.");
+                    addMessage('ai', data.message);
+                    toggleUI('chat');
                 }
             } catch (e) {
-                console.error("Discovery Error:", e);
-                executeActualParse(); // Fallback
+                executeActualParse();
             }
         }
 
         async function sendChatResponse() {
-            const userMsg = document.getElementById('chat-user-input').value;
+            const inputEl = document.getElementById('chat-user-input');
+            const userMsg = inputEl.value;
             if(!userMsg) return;
 
+            addMessage('user', userMsg);
             chatHistory.push({ role: "user", text: userMsg });
-            // Enrich the raw JD with chat context
-            document.getElementById('jd-input').value += "\n[Discovery Context]: " + userMsg;
-            document.getElementById('chat-user-input').value = "";
-            
-            startDiscovery(); 
-        }
+            document.getElementById('jd-input').value += "\n[HR Clarification]: " + userMsg;
+            inputEl.value = "";
+            document.getElementById('typing-indicator').style.display = 'block';
 
-        function forceNextStep() {
-            executeActualParse();
+            try {
+                const res = await fetch(`${API_BASE}/api/chat-discovery`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ job_description: document.getElementById('jd-input').value, history: chatHistory })
+                });
+                const data = await res.json();
+                document.getElementById('typing-indicator').style.display = 'none';
+
+                if (data.status === "READY") {
+                    addMessage('ai', "Excellent. I have enough data to build your intelligence plan. Finalizing now...");
+                    setTimeout(() => { executeActualParse(); }, 1500);
+                } else {
+                    addMessage('ai', data.message);
+                }
+            } catch (e) {
+                document.getElementById('typing-indicator').style.display = 'none';
+                executeActualParse();
+            }
         }
 
         async function executeActualParse() {
             const jdText = document.getElementById('jd-input').value;
-            toggleUI('loading', "🕵️ Agent 1: Structuring Decision Criteria...");
+            toggleUI('loading', "🧠 Agent 1: Structuring Data & Weighing Criteria...");
             
             try {
                 const res = await fetch(`${API_BASE}/api/parse-jd`, {
@@ -279,30 +293,42 @@ Adaptability: Job descriptions are static, but this reality is not; you must ada
 
                 document.getElementById('verify-title').value = data.job_title || "";
                 document.getElementById('verify-detailed-jd').value = data.detailed_jd || "";
-                document.getElementById('verify-urgency').value = data.urgency_score || 5;
-
+                
                 const container = document.getElementById('criteria-container');
                 container.innerHTML = '';
                 if(data.criteria_list) {
                     data.criteria_list.forEach(c => addCriteriaRow(c.label, c.weight));
                 }
-
                 toggleUI('step2');
             } catch (e) {
-                alert("Error: " + e.message);
+                alert("Error parsing: " + e.message);
                 toggleUI('step1');
             }
         }
 
+        function addCriteriaRow(label = "", weight = 5) {
+            const container = document.getElementById('criteria-container');
+            const div = document.createElement('div');
+            div.className = 'criteria-row';
+            div.innerHTML = `
+                <input type="text" class="crit-label" value="${label}" style="flex:2; margin:0; padding:8px;">
+                <input type="range" class="crit-slider" min="1" max="10" value="${weight}" 
+                       oninput="this.nextElementSibling.innerText = this.value">
+                <span class="weight-display">${weight}</span>
+                <button class="danger" onclick="this.parentElement.remove()">✕</button>
+            `;
+            container.appendChild(div);
+        }
+
         async function rankCandidates() {
-            const critLabels = [...document.querySelectorAll('.crit-label')].map(i => i.value);
-            const critWeights = [...document.querySelectorAll('.crit-slider')].map(i => i.value);
+            const labels = [...document.querySelectorAll('.crit-label')].map(i => i.value);
+            const weights = [...document.querySelectorAll('.crit-slider')].map(i => i.value);
             const detailedJd = document.getElementById('verify-detailed-jd').value;
             
-            const weightedSummary = critLabels.map((l, i) => `${l} (Importance: ${critWeights[i]}/10)`).join(", ");
-            const finalQuery = `Position: ${document.getElementById('verify-title').value}. Requirements: ${detailedJd}. Priority Weights: ${weightedSummary}`;
+            const weightedSummary = labels.map((l, i) => `${l} (Weight: ${weights[i]}/10)`).join(", ");
+            const finalQuery = `Position: ${document.getElementById('verify-title').value}. Info: ${detailedJd}. Priority Weights: ${weightedSummary}`;
 
-            toggleUI('loading', "🚀 Agent 2: Cross-referencing Talent Pool & Scoring Fits...");
+            toggleUI('loading', "🚀 Agent 2: Ranking Talent via Vector Analysis...");
 
             try {
                 const res = await fetch(`${API_BASE}/api/rank-candidates`, {
@@ -314,26 +340,22 @@ Adaptability: Job descriptions are static, but this reality is not; you must ada
                 const list = document.getElementById('candidate-list');
                 list.innerHTML = '';
 
-                if (data && data.candidate_scores && Array.isArray(data.candidate_scores)) {
+                if (data.candidate_scores && Array.isArray(data.candidate_scores)) {
                     data.candidate_scores.forEach((cand, index) => {
                         const card = document.createElement('div');
                         card.className = 'candidate-card';
                         card.innerHTML = `
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                                <h4 style="margin:0;">Rank #${index + 1}: ${cand.candidate_id || 'Unknown'}</h4>
+                                <h4 style="margin:0;">#${index + 1}: ${cand.candidate_id || 'Unknown'}</h4>
                                 <span class="score-pill">${cand.fit_score || 0}% Fit</span>
                             </div>
-                            <p style="font-size:0.95rem; color:#475569;"><strong>Reasoning:</strong> ${cand.tradeoff_reasoning || 'No reasoning provided.'}</p>
+                            <p style="font-size:0.9rem;"><strong>AI Reasoning:</strong> ${cand.tradeoff_reasoning || 'No reasoning provided.'}</p>
                         `;
                         list.appendChild(card);
                     });
                 } else {
-                    list.innerHTML = `<div class="error">
-                        <h4>No Candidates Found</h4>
-                        <p>The server returned an empty list or an error: ${data.error || 'Unknown Error'}</p>
-                    </div>`;
+                    list.innerHTML = `<p class="error">No candidates found.</p>`;
                 }
-
                 toggleUI('step3');
             } catch (e) {
                 alert("Ranking Error: " + e.message);
@@ -350,13 +372,17 @@ Adaptability: Job descriptions are static, but this reality is not; you must ada
                 document.getElementById('loading-text').innerText = text;
             } else if (step === 'chat') {
                 document.getElementById('step-chat').style.display = 'block';
-            } else if (step === 'step1') {
-                document.getElementById('step1-input').style.display = 'block';
             } else if (step === 'step2') {
                 document.getElementById('step2-verify').style.display = 'block';
             } else if (step === 'step3') {
                 document.getElementById('step3-results').style.display = 'block';
+            } else {
+                document.getElementById('step1-input').style.display = 'block';
             }
+        }
+
+        function forceNextStep() {
+            executeActualParse();
         }
     </script>
 </body>

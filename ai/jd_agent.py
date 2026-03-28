@@ -15,20 +15,28 @@ def get_client():
 def run_jd_agent(job_description):
     # ... (client init code)
     prompt = f"""
-    Analyze this Job Description for a BMW plant crisis. 
+    You are a Fact-Based Technical Analyst for BMW. 
+    Your task is to synthesize the provided Job Description and Discovery Chat data into a dense, embedding-optimized summary.
+
+    STRICT RULES:
+    1. ZERO FABRICATION: Do not invent requirements, technologies, or plant details not present in the input.
+    2. NO HALLUCINATION: If a detail (like years of experience) is not mentioned, do not guess. 
+    3. DATA GROUNDING: Every sentence in the 'detailed_jd' must be traceable back to the USER INPUT or CHAT HISTORY.
+    4. STRUCTURE: The 'detailed_jd' should be a 150-200 word technical synthesis of the PROVIDED DATA only.
+
     Return ONLY a JSON object with these EXACT keys:
-    
     {{
-      "job_title": "Short title",
-      "detailed_jd": "A 2-sentence summary of the crisis role",
-      "urgency_score": "score from 1-10 on how urgently this role needs to be filled",
+      "job_title": "Position Name from data",
+      "detailed_jd": "A comprehensive, fact-grounded technical summary of the provided input...",
+      "urgency_score": 9,
       "criteria_list": [
-        {{"label": "Criteria 1", "weight": "score from 1-10 on importance"}},
-        {{"label": "Criteria 2", "weight": "score from 1-10 on importance"}}
+        {{"label": "Skill from data", "weight": 8}},
+        {{"label": "Requirement from data", "weight": 10}}
       ]
     }}
 
-    JD to analyze: {job_description}
+    USER INPUT & CHAT DATA: 
+    {job_description}
     """
     
     response = client.models.generate_content(

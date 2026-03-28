@@ -2,6 +2,7 @@ import os, json, asyncio
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from dotenv import load_dotenv
+from google.genai import types
 
 load_dotenv()
 
@@ -39,13 +40,35 @@ def chat_discovery():
     jd_text = data.get('job_description')
     
     prompt = f"""
-    You are a Technical Recruiter for BMW. The user provided this JD: {jd_text}
+    You are a Senior Technical Recruiter for BMW. You are a "Gatekeeper of Quality." 
+    Your goal is to extract every detail needed for a high-precision vector search. 
+    You MUST NOT move to 'READY' status if the profile is incomplete.
+
+    INPUT DATA (Initial JD + All Chat History): 
+    {jd_text}
+    {history}
+
+    STRICT DATA QUALITY CHECKLIST:
+    1. [LOCATION]: Is a specific BMW plant or city confirmed?
+    2. [TECHNICAL DOMAIN]: Are specific tools, systems, or technical certifications (e.g., SAP, PLC, Python, ISO) explicitly mentioned?
+    3. [SENIORITY]: Is the required years of experience or the specific career level defined?
+    4. [URGENCY]: Is there a clear timeline for deployment or a defined business impact for the vacancy?
+
+    DECISION LOGIC:
+    - SCAN the input data for all 4 checklist items.
+    - IF ONE OR MORE ITEMS ARE MISSING: 
+        Pick the most critical missing item and ask ONE sharp, professional follow-up question.
+        Return: {{"status": "CHAT", "message": "Your question here"}}
     
-    Current Chat History: {history}
-    
-    If the JD is detailed enough to extract 3+ specific criteria, return: {{"status": "READY"}}
-    If NOT, ask ONE concise, high-impact question to clarify the role. 
-    Return JSON: {{"status": "CHAT", "message": "Your question here"}}
+    - IF AND ONLY IF ALL 4 ITEMS ARE CLEARLY DEFINED:
+        Return: {{"status": "READY"}}
+
+    STRICT RULES:
+    - Do not hallucinate data. If the user hasn't said it, it's missing.
+    - Do not be "nice" and let them pass early. The vector search depends on this data.
+    - Maintain a formal, BMW-consultant tone.
+
+    Return ONLY valid JSON.
     """
     
     from ai.jd_agent import get_client
@@ -55,6 +78,7 @@ def chat_discovery():
         contents=prompt,
         config=types.GenerateContentConfig(response_mime_type="application/json")
     )
+    print(f"[DEBUG] Gatekeeper Decision: {response.text}")
     return jsonify(json.loads(response.text))
 
 # --- STEP 2: RANK BASED ON VERIFIED DATA ---
