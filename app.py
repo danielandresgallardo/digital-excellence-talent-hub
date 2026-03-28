@@ -15,10 +15,12 @@ CORS(app)
 
 @app.route('/')
 def serve_frontend():
+    # Serve the single-page frontend.
     return send_file('index.html')
 
 @app.route('/api/evaluate-crisis', methods=['POST'])
 def evaluate_crisis():
+    # Expect a JSON body with a `job_description` field.
     data = request.json
     jd_text = data.get('job_description')
 
@@ -28,10 +30,12 @@ def evaluate_crisis():
             all_candidates = json.load(f)
 
         # 2. Analyze JD
+        # Convert the raw job description into structured criteria used downstream.
         criteria_str, jd_client = run_jd_agent(jd_text)
         criteria_dict = json.loads(criteria_str)
 
         # 3. Vector Search (Using pre-baked embeddings in candidates.json)
+        # Embed the JD criteria and compare against candidate embeddings.
         jd_emb = jd_client.models.embed_content(model='gemini-embedding-001', contents=criteria_dict['criteria'])
         query_vec = jd_emb.embeddings[0].values
 
@@ -45,10 +49,12 @@ def evaluate_crisis():
 
         # 4. Deep Scoring
         async def run_scoring():
+            # Run candidate scoring concurrently to reduce total response time.
             tasks = [score_single_candidate(c, criteria_str) for c in top_3]
             return await asyncio.gather(*tasks)
         
         results = asyncio.run(run_scoring())
+        # Agent responses are JSON strings; parse and rank by fit score.
         parsed_results = [json.loads(r) for r in results]
         parsed_results.sort(key=lambda x: x['fit_score'], reverse=True)
 
