@@ -46,6 +46,10 @@ def embed_and_store(candidates):
             metadata["type"] = "synthetic_rich_pool"
             
             supabase.table('candidates').insert({
+                "full_name": c.get("full_name", ""),
+                "current_title": c.get("current_title", ""),
+                "skills": c.get("skills", []),
+                "summary": c.get("summary", ""),
                 "resume_text": c.get("summary", ""),
                 "metadata": metadata,
                 "embedding": vector
