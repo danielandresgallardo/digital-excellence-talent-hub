@@ -8,22 +8,11 @@ load_dotenv()
 # Local Imports
 from ai.jd_agent import run_jd_agent, get_client
 from ai.cv_agent import score_single_candidate
-from ai.utils import cosine_similarity
+# We no longer need local cosine_similarity since Supabase handles it
+from db.db_functions import get_closest_candidates
 
 app = Flask(__name__)
 CORS(app)
-
-# Helper to load local candidates
-def load_local_db():
-    # This finds candidates.json in the same folder as app.py
-    base_path = os.path.dirname(os.path.abspath(__file__))
-    json_path = os.path.join(base_path, 'candidates.json')
-    
-    if not os.path.exists(json_path):
-        raise FileNotFoundError(f"Could not find candidates.json at {json_path}")
-        
-    with open(json_path, 'r') as f:
-        return json.load(f)
 
 @app.route('/')
 def serve_frontend():
@@ -35,28 +24,52 @@ def parse_jd():
     data = request.json
     jd_text = data.get('job_description')
     try:
-        # JD Agent returns structured JSON (Title, Detailed JD, Criteria List)
+        print(f"[DEBUG] Step 1: Agent 1 analyzing JD...")
         criteria_str, _ = run_jd_agent(jd_text)
         return jsonify(json.loads(criteria_str))
     except Exception as e:
         print(f"[DEBUG] Step 1 Error: {e}")
         return jsonify({"error": str(e)}), 500
 
+# --- STEP 1.5: DISCOVERY CHAT ---
+@app.route('/api/chat-discovery', methods=['POST'])
+def chat_discovery():
+    data = request.json
+    history = data.get('history', [])  # The conversation so far
+    jd_text = data.get('job_description')
+    
+    prompt = f"""
+    You are a Technical Recruiter for BMW. The user provided this JD: {jd_text}
+    
+    Current Chat History: {history}
+    
+    If the JD is detailed enough to extract 3+ specific criteria, return: {{"status": "READY"}}
+    If NOT, ask ONE concise, high-impact question to clarify the role. 
+    Return JSON: {{"status": "CHAT", "message": "Your question here"}}
+    """
+    
+    from ai.jd_agent import get_client
+    client = get_client()
+    response = client.models.generate_content(
+        model='gemini-3.1-flash-lite-preview',
+        contents=prompt,
+        config=types.GenerateContentConfig(response_mime_type="application/json")
+    )
+    return jsonify(json.loads(response.text))
+
 # --- STEP 2: RANK BASED ON VERIFIED DATA ---
 @app.route('/api/rank-candidates', methods=['POST'])
 def rank_candidates():
     data = request.json
-    # This is the "Weighted Summary" string built by your new Frontend
+    # This matches the detailed summary from your Verify Page
     verified_criteria = data.get('criteria') 
     
     if not verified_criteria:
         return jsonify({"error": "No criteria provided"}), 400
 
     try:
-        # 1. Load Local JSON "Database"
-        all_candidates = load_local_db()
-
-        # 2. Embed the Human-Verified Criteria
+        # 1. Get Embedding for the verified requirements
+        print(f"[DEBUG] Step 2: Embedding verified criteria...")
         jd_client = get_client()
         res = jd_client.models.embed_content(
             model='gemini-embedding-001', 
@@ -64,34 +77,33 @@ def rank_candidates():
         )
         query_vec = res.embeddings[0].values
 
-        # 3. Local Vector Search (Replacing Supabase)
-        scored = []
-        for c in all_candidates:
-            # Assumes you ran seed_db.py and candidates.json has 'embedding' keys
-            sim = cosine_similarity(query_vec, c['embedding'])
-            scored.append({"candidate": c, "similarity": sim})
+        # 2. Vector Search via Supabase RPC
+        print(f"[DEBUG] Querying Supabase match_candidates...")
+        top_candidates = get_closest_candidates(query_vec, k=3)
 
-        # Sort by similarity and take top 3
-        scored.sort(key=lambda x: x['similarity'], reverse=True)
-        top_3 = [x['candidate'] for x in scored[:3]]
+        if not top_candidates:
+            print("[DEBUG] No candidates returned from DB.")
+            return jsonify({"status": "success", "candidate_scores": []})
 
-        # 4. Deep Scoring with Agent 2 (CV Agent)
+        # 3. Deep Scoring with Agent 2 (CV Agent)
+        print(f"[DEBUG] Scoring {len(top_candidates)} candidates with Agent 2...")
         async def run_scoring():
-            tasks = [score_single_candidate(c, verified_criteria) for c in top_3]
+            tasks = [score_single_candidate(c, verified_criteria) for c in top_candidates]
             return await asyncio.gather(*tasks)
         
         results_raw = asyncio.run(run_scoring())
         
-        # Parse and sort by fit_score
+        # 4. Parse AI reasoning and sort by fit_score
         parsed_results = []
         for r in results_raw:
             try:
                 parsed_results.append(json.loads(r))
-            except:
-                print(f"[DEBUG] CV Agent output parsing failed for: {r}")
+            except Exception as e:
+                print(f"[DEBUG] CV Agent JSON parse error: {e} | Raw: {r}")
 
         parsed_results.sort(key=lambda x: x.get('fit_score', 0), reverse=True)
 
+        print(f"[DEBUG] Sending {len(parsed_results)} results to frontend.")
         return jsonify({
             "status": "success", 
             "candidate_scores": parsed_results
@@ -102,5 +114,4 @@ def rank_candidates():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    # Using 5005 as requested
     app.run(host='0.0.0.0', port=5005, debug=True)

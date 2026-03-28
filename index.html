@@ -13,6 +13,7 @@
             --text-main: #1e293b;
             --text-muted: #64748b;
             --border: #e2e8f0;
+            --chat-bubble: #f1f5f9;
         }
 
         body {
@@ -35,7 +36,10 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             margin-bottom: 24px;
             border: 1px solid var(--border);
+            animation: fadeIn 0.4s ease;
         }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; }
         
@@ -66,13 +70,20 @@
             padding: 12px 16px;
             border-radius: 8px;
             margin-bottom: 12px;
-            animation: fadeIn 0.3s ease;
         }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         .crit-label { flex: 2; margin-bottom: 0 !important; }
         .crit-slider { flex: 1; cursor: pointer; }
         .weight-display { font-weight: bold; color: var(--primary); min-width: 24px; text-align: center; }
+
+        /* Chat Styles */
+        .chat-box {
+            background: var(--chat-bubble);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary);
+        }
 
         .btn-group { display: flex; gap: 12px; margin-top: 20px; }
         button {
@@ -88,8 +99,7 @@
         }
         button:hover { background-color: var(--primary-hover); transform: translateY(-1px); }
         button.secondary { background-color: #f1f5f9; color: #475569; }
-        button.secondary:hover { background-color: #e2e8f0; }
-        button.danger { background-color: transparent; color: #ef4444; padding: 8px; }
+        button.danger { background-color: transparent; color: #ef4444; padding: 8px; border:none; cursor:pointer;}
 
         .loading-state {
             display: none;
@@ -100,9 +110,8 @@
             border: 2px dashed var(--border);
         }
 
-        #step2-verify, #step3-results { display: none; }
+        #step-chat, #step2-verify, #step3-results { display: none; }
 
-        /* Results Styling */
         .candidate-card {
             border-radius: 12px;
             background: white;
@@ -119,6 +128,7 @@
             font-weight: 700;
             font-size: 0.85rem;
         }
+        .error { color: #dc2626; background: #fef2f2; padding: 15px; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -128,7 +138,7 @@
     
     <div id="step1-input" class="card">
         <label>Job Description / Crisis Scenario</label>
-        <textarea id="jd-input" placeholder="Paste the raw requirements or describe the plant crisis here...">Test Job Description: Interim Logistics Crisis Lead
+        <textarea id="jd-input" placeholder="Paste requirements here...">Test Job Description: Interim Logistics Crisis Lead
 Location: Debrecen, Hungary (On-site) Urgency: Immediate (Deployment required within 72 hours)
 Context: Due to a sudden disruption in the regional battery supply chain, we require an Interim Logistics Crisis Lead to stabilize production for the Neue Klasse launch. This is a high-risk role where a weak leader could destroy a strong system, while a strong leader is needed to recover a failing one. The successful candidate must navigate high levels of misalignment and cultural friction under extreme time pressure.
 Key Responsibilities:
@@ -140,12 +150,25 @@ Battle-Tested Leadership: Minimum 10 years in automotive crisis environments.
 Speed to Productivity: Ability to hit the ground running with zero onboarding time.
 Adaptability: Job descriptions are static, but this reality is not; you must adapt priorities in real-time.
 </textarea>
-        <button onclick="parseJD()">Generate Intelligence Plan</button>
+        <button onclick="startDiscovery()">Generate Intelligence Plan</button>
     </div>
 
     <div id="loading" class="loading-state">
         <h3 id="loading-text">🕵️ Agent 1 is analyzing...</h3>
         <p>This will take ~5 seconds</p>
+    </div>
+
+    <div id="step-chat" class="card">
+        <h3>🔍 Role Discovery</h3>
+        <p style="color: var(--text-muted);">The AI needs more context to refine the search parameters.</p>
+        <div class="chat-box">
+            <p id="chat-bot-msg"><strong>AI Assistant:</strong> Analyzing sufficiency...</p>
+        </div>
+        <input type="text" id="chat-user-input" placeholder="Type your answer here..." onkeypress="if(event.key==='Enter') sendChatResponse()">
+        <div class="btn-group">
+            <button onclick="sendChatResponse()">Send Message</button>
+            <button class="secondary" onclick="forceNextStep()">Skip to Final Tuning</button>
+        </div>
     </div>
 
     <div id="step2-verify" class="card">
@@ -184,13 +207,14 @@ Adaptability: Job descriptions are static, but this reality is not; you must ada
 
     <script>
         const API_BASE = window.location.origin;
+        let chatHistory = [];
 
         function addCriteriaRow(label = "", weight = 5) {
             const container = document.getElementById('criteria-container');
             const div = document.createElement('div');
             div.className = 'criteria-row';
             div.innerHTML = `
-                <input type="text" class="crit-label" value="${label}" placeholder="e.g. BMW Experience">
+                <input type="text" class="crit-label" value="${label}" placeholder="Requirement...">
                 <input type="range" class="crit-slider" min="1" max="10" value="${weight}" 
                        oninput="this.nextElementSibling.innerText = this.value">
                 <span class="weight-display">${weight}</span>
@@ -199,10 +223,50 @@ Adaptability: Job descriptions are static, but this reality is not; you must ada
             container.appendChild(div);
         }
 
-        async function parseJD() {
+        async function startDiscovery() {
             const jdText = document.getElementById('jd-input').value;
             if (!jdText) return alert("Please enter text");
 
+            toggleUI('loading', "🕵️ Gatekeeper: Checking JD sufficiency...");
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/chat-discovery`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ job_description: jdText, history: chatHistory })
+                });
+                const data = await res.json();
+
+                if (data.status === "CHAT") {
+                    document.getElementById('chat-bot-msg').innerHTML = `<strong>AI Assistant:</strong> ${data.message}`;
+                    toggleUI('chat');
+                } else {
+                    executeActualParse();
+                }
+            } catch (e) {
+                console.error("Discovery Error:", e);
+                executeActualParse(); // Fallback
+            }
+        }
+
+        async function sendChatResponse() {
+            const userMsg = document.getElementById('chat-user-input').value;
+            if(!userMsg) return;
+
+            chatHistory.push({ role: "user", text: userMsg });
+            // Enrich the raw JD with chat context
+            document.getElementById('jd-input').value += "\n[Discovery Context]: " + userMsg;
+            document.getElementById('chat-user-input').value = "";
+            
+            startDiscovery(); 
+        }
+
+        function forceNextStep() {
+            executeActualParse();
+        }
+
+        async function executeActualParse() {
+            const jdText = document.getElementById('jd-input').value;
             toggleUI('loading', "🕵️ Agent 1: Structuring Decision Criteria...");
             
             try {
@@ -213,12 +277,10 @@ Adaptability: Job descriptions are static, but this reality is not; you must ada
                 });
                 const data = await res.json();
 
-                // Populate Fields
                 document.getElementById('verify-title').value = data.job_title || "";
                 document.getElementById('verify-detailed-jd').value = data.detailed_jd || "";
                 document.getElementById('verify-urgency').value = data.urgency_score || 5;
 
-                // Build dynamic rows
                 const container = document.getElementById('criteria-container');
                 container.innerHTML = '';
                 if(data.criteria_list) {
@@ -233,12 +295,10 @@ Adaptability: Job descriptions are static, but this reality is not; you must ada
         }
 
         async function rankCandidates() {
-            // Collect weighted list
             const critLabels = [...document.querySelectorAll('.crit-label')].map(i => i.value);
             const critWeights = [...document.querySelectorAll('.crit-slider')].map(i => i.value);
             const detailedJd = document.getElementById('verify-detailed-jd').value;
             
-            // Build the final summary string to pass to the Backend
             const weightedSummary = critLabels.map((l, i) => `${l} (Importance: ${critWeights[i]}/10)`).join(", ");
             const finalQuery = `Position: ${document.getElementById('verify-title').value}. Requirements: ${detailedJd}. Priority Weights: ${weightedSummary}`;
 
@@ -254,7 +314,6 @@ Adaptability: Job descriptions are static, but this reality is not; you must ada
                 const list = document.getElementById('candidate-list');
                 list.innerHTML = '';
 
-                // Check if the data actually contains the scores list
                 if (data && data.candidate_scores && Array.isArray(data.candidate_scores)) {
                     data.candidate_scores.forEach((cand, index) => {
                         const card = document.createElement('div');
@@ -269,7 +328,6 @@ Adaptability: Job descriptions are static, but this reality is not; you must ada
                         list.appendChild(card);
                     });
                 } else {
-                    // If the list is missing, show a helpful message instead of crashing
                     list.innerHTML = `<div class="error">
                         <h4>No Candidates Found</h4>
                         <p>The server returned an empty list or an error: ${data.error || 'Unknown Error'}</p>
@@ -284,19 +342,19 @@ Adaptability: Job descriptions are static, but this reality is not; you must ada
         }
 
         function toggleUI(step, text = "") {
-            document.getElementById('step1-input').style.display = 'none';
-            document.getElementById('step2-verify').style.display = 'none';
-            document.getElementById('step3-results').style.display = 'none';
-            document.getElementById('loading').style.display = 'none';
+            const steps = ['step1-input', 'step-chat', 'step2-verify', 'step3-results', 'loading'];
+            steps.forEach(s => document.getElementById(s).style.display = 'none');
 
             if(step === 'loading') {
                 document.getElementById('loading').style.display = 'block';
                 document.getElementById('loading-text').innerText = text;
-            } else if(step === 'step1') {
+            } else if (step === 'chat') {
+                document.getElementById('step-chat').style.display = 'block';
+            } else if (step === 'step1') {
                 document.getElementById('step1-input').style.display = 'block';
-            } else if(step === 'step2') {
+            } else if (step === 'step2') {
                 document.getElementById('step2-verify').style.display = 'block';
-            } else if(step === 'step3') {
+            } else if (step === 'step3') {
                 document.getElementById('step3-results').style.display = 'block';
             }
         }
