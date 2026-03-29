@@ -137,13 +137,20 @@ def rank_candidates():
                 ai_analysis = json.loads(r)
                 original_meta = top_candidates[i].get('metadata', {})
                 
+                raw_score = ai_analysis.get("fit_score", 0)
+                try:
+                    # Convert to string, remove '%', and cast to int
+                    clean_score = int(str(raw_score).replace('%', '').strip())
+                except ValueError:
+                    clean_score = 0
+
                 enriched_result = {
                     "full_name": original_meta.get("full_name", "Internal Candidate"),
                     "current_title": original_meta.get("current_title", "Specialist"),
                     "years_experience": original_meta.get("years_experience", "N/A"),
                     "location": original_meta.get("location") or "Munich (Main)",
                     "skills": original_meta.get("skills", [])[:5],
-                    "fit_score": ai_analysis.get("fit_score", 0),
+                    "fit_score": clean_score,
                     "tradeoff_reasoning": ai_analysis.get("tradeoff_reasoning", "No reasoning provided.")
                 }
                 parsed_results.append(enriched_result)
