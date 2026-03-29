@@ -17,17 +17,17 @@
         --bmw-black: #0f172a;
       }
 
-        #external-post-text {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            white-space: pre-wrap; /* Preserves the line breaks from the AI */
-            border: 1px solid #e2e8f0;
-            padding: 20px;
-            background: #ffffff;
-            font-size: 14px;
-            resize: vertical;
-        }
+      #external-post-text {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        white-space: pre-wrap; /* Preserves the line breaks from the AI */
+        border: 1px solid #e2e8f0;
+        padding: 20px;
+        background: #ffffff;
+        font-size: 14px;
+        resize: vertical;
+      }
 
       body {
         font-family:
@@ -375,13 +375,26 @@
           requirements.
         </p>
       </div>
+      
       <div id="candidate-list"></div>
+      
+      <div id="show-more-container" style="display: none; text-align: center; margin-bottom: 20px;">
+        <button id="show-more-btn" class="secondary" style="width: 100%; border: 2px dashed var(--border); background: transparent;" onclick="renderNextBatch()">
+          ⬇ Show Next 3 Candidates
+        </button>
+      </div>
+
       <button class="secondary" onclick="location.reload()">New Search</button>
     </div>
 
     <script>
       const API_BASE = window.location.origin;
       let chatHistory = [];
+      
+      // --- ADDED: Paging / Batch Variables ---
+      let allCandidates = [];
+      let candidatesDisplayed = 0;
+      const BATCH_SIZE = 3;
 
       const ICON_AI = `<div class="icon-circle icon-ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></div>`;
       const ICON_USER = `<div class="icon-circle icon-user"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>`;
@@ -494,6 +507,50 @@
         document.getElementById("criteria-container").appendChild(div);
       }
 
+      // --- ADDED: Extracted rendering logic to support pagination ---
+      function renderNextBatch() {
+        const list = document.getElementById("candidate-list");
+        const endIndex = Math.min(candidatesDisplayed + BATCH_SIZE, allCandidates.length);
+
+        for (let i = candidatesDisplayed; i < endIndex; i++) {
+            const cand = allCandidates[i];
+            const card = document.createElement('div');
+            card.className = 'candidate-card';
+            const skillBadges = (cand.skills || []).map(s => `<span class="skill-tag">${s}</span>`).join('');
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                    <div>
+                        <h3 style="margin:0; font-size:1.2rem; color:var(--bmw-black);">${cand.full_name}</h3>
+                        <p style="margin:4px 0; color:var(--text-muted); font-size:0.9rem;">
+                            <strong>${cand.current_title}</strong> • ${cand.years_experience} Yrs Exp • ${cand.location}
+                        </p>
+                        <div style="margin-top:8px;">${skillBadges}</div>
+                    </div>
+                    <div style="text-align:right;"><div class="score-pill">${cand.fit_score}% Match</div></div>
+                </div>
+                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #cbd5e1; margin-top:10px;">
+                    <label style="color:#475569; font-size:0.7rem; letter-spacing:0.05em; margin-bottom:5px;">AI FIT ANALYSIS</label>
+                    <p style="font-size:0.92rem; margin:0; line-height:1.5;">${cand.tradeoff_reasoning}</p>
+                </div>
+                <div style="margin-top:15px; display:flex; gap:10px;">
+                    <button class="secondary" style="padding: 8px 16px; font-size:0.85rem; flex:1;">Profile Details</button>
+                    <button style="padding: 8px 16px; font-size:0.85rem; flex:1; background:var(--bmw-black);">Initiate Transfer</button>
+                </div>
+            `;
+            list.appendChild(card);
+        }
+
+        candidatesDisplayed = endIndex;
+
+        // Toggle visibility of the Show More button
+        const showMoreContainer = document.getElementById("show-more-container");
+        if (candidatesDisplayed < allCandidates.length) {
+            showMoreContainer.style.display = "block";
+        } else {
+            showMoreContainer.style.display = "none";
+        }
+      }
+
       async function rankCandidates() {
         const labels = [...document.querySelectorAll(".crit-label")].map(
           (i) => i.value,
@@ -503,8 +560,8 @@
         );
         const detailedJd = document.getElementById("verify-detailed-jd").value;
             
-            const urgencyEl = document.getElementById('verify-urgency');
-            const urgencyVal = urgencyEl ? parseInt(urgencyEl.value) : 5;
+        const urgencyEl = document.getElementById('verify-urgency');
+        const urgencyVal = urgencyEl ? parseInt(urgencyEl.value) : 5;
 
         const query = `Title: ${document.getElementById("verify-title").value}. Info: ${detailedJd}. Weights: ${labels.map((l, i) => l + "(" + weights[i] + ")").join(",")}`;
 
@@ -518,85 +575,65 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
-                        criteria: query,
-                        urgency: urgencyVal 
-                    }),
+                criteria: query,
+                urgency: urgencyVal 
+            }),
           });
           const data = await res.json();
           const list = document.getElementById("candidate-list");
           list.innerHTML = "";
 
-                // 1. Render Internal Candidates
-                if (data.candidate_scores && data.candidate_scores.length > 0) {
-                    data.candidate_scores.forEach((cand, index) => {
-                        const card = document.createElement('div');
-                        card.className = 'candidate-card';
-                        const skillBadges = (cand.skills || []).map(s => `<span class="skill-tag">${s}</span>`).join('');
-                        card.innerHTML = `
-                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-                                <div>
-                                    <h3 style="margin:0; font-size:1.2rem; color:var(--bmw-black);">${cand.full_name}</h3>
-                                    <p style="margin:4px 0; color:var(--text-muted); font-size:0.9rem;">
-                                        <strong>${cand.current_title}</strong> • ${cand.years_experience} Yrs Exp • ${cand.location}
-                                    </p>
-                                    <div style="margin-top:8px;">${skillBadges}</div>
-                                </div>
-                                <div style="text-align:right;"><div class="score-pill">${cand.fit_score}% Match</div></div>
-                            </div>
-                            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #cbd5e1; margin-top:10px;">
-                                <label style="color:#475569; font-size:0.7rem; letter-spacing:0.05em; margin-bottom:5px;">AI FIT ANALYSIS</label>
-                                <p style="font-size:0.92rem; margin:0; line-height:1.5;">${cand.tradeoff_reasoning}</p>
-                            </div>
-                            <div style="margin-top:15px; display:flex; gap:10px;">
-                                <button class="secondary" style="padding: 8px 16px; font-size:0.85rem; flex:1;">Profile Details</button>
-                                <button style="padding: 8px 16px; font-size:0.85rem; flex:1; background:var(--bmw-black);">Initiate Transfer</button>
-                            </div>
-                        `;
-                list.appendChild(card);
-              });
-                }
+          // --- REFACTORED: Hook into pagination globals ---
+          allCandidates = data.candidate_scores || [];
+          candidatesDisplayed = 0;
 
-                // 2. Strategic vs Critical Recommendation
-                if (data.suggest_external) {
-                    const isCritical = data.recommendation_type === "CRITICAL";
-                    const bgColor = isCritical ? "#fef2f2" : "#eff6ff";
-                    const borderColor = isCritical ? "#ef4444" : "#3b82f6";
-                    const textColor = isCritical ? "#991b1b" : "#1e40af";
-                    const btnColor = isCritical ? "#dc2626" : "#2563eb";
-                    const title = isCritical ? "🚨 Critical Action Required" : "📢 Strategic Advisor";
-                    const message = isCritical 
-                        ? "Internal search yielded no viable matches for this high-urgency role. <strong>Immediate external recruitment</strong> is required to prevent project delay." 
-                        : "Internal talent density is low. Given the low urgency, we recommend an external search to find a higher quality match.";
+          // 1. Render Initial Batch of Candidates
+          if (allCandidates.length > 0) {
+              renderNextBatch();
+          }
 
-                    const advertCard = document.createElement('div');
-                    advertCard.className = 'card';
-                    advertCard.style.border = `2px dashed ${borderColor}`;
-                    advertCard.style.background = bgColor;
-                    advertCard.style.marginTop = "20px";
-                    advertCard.innerHTML = `
-                        <div style="display:flex; gap:15px; align-items:center;">
-                            <div style="font-size:2rem;">${isCritical ? '⚠️' : '💡'}</div>
-                            <div>
-                                <h4 style="margin:0; color:${textColor};">${title}</h4>
-                                <p style="margin:5px 0; font-size:0.95rem; color:${textColor};">${message}</p>
-                                <button onclick="generateExternalPosting()" id="gen-post-btn" style="background:${btnColor}; padding:8px 16px; font-size:0.85rem; margin-top:10px; color:white; border:none; border-radius:6px; cursor:pointer;">
-                                    Generate External Job Advertisement
-                                </button>
-                            </div>
-                        </div>
-                        <div id="generated-posting-area" style="margin-top:15px; display:none;">
-                            <label style="color:${textColor};">AI-Drafted External Ad</label>
-                            <textarea id="external-post-text" style="height:220px; background:white; width:100%; margin-top:10px; padding:12px; border:1px solid ${borderColor}; border-radius:8px; font-size:14px;"></textarea>
-                            <button class="secondary" onclick="copyPosting()" style="margin-top:10px;">Copy to Clipboard</button>
-                        </div>
-                    `;
-                    // If it's critical and no results were found, put it at the very top
-                    if (!data.candidate_scores || data.candidate_scores.length === 0) {
-                        list.appendChild(advertCard);
-                    } else {
-                        list.prepend(advertCard);
-                    }
-                }
+          // 2. Strategic vs Critical Recommendation
+          if (data.suggest_external) {
+              const isCritical = data.recommendation_type === "CRITICAL";
+              const bgColor = isCritical ? "#fef2f2" : "#eff6ff";
+              const borderColor = isCritical ? "#ef4444" : "#3b82f6";
+              const textColor = isCritical ? "#991b1b" : "#1e40af";
+              const btnColor = isCritical ? "#dc2626" : "#2563eb";
+              const title = isCritical ? "🚨 Critical Action Required" : "📢 Strategic Advisor";
+              const message = isCritical 
+                  ? "Internal search yielded no viable matches for this high-urgency role. <strong>Immediate external recruitment</strong> is required to prevent project delay." 
+                  : "Internal talent density is low. Given the low urgency, we recommend an external search to find a higher quality match.";
+
+              const advertCard = document.createElement('div');
+              advertCard.className = 'card';
+              advertCard.style.border = `2px dashed ${borderColor}`;
+              advertCard.style.background = bgColor;
+              advertCard.style.marginTop = "20px";
+              advertCard.innerHTML = `
+                  <div style="display:flex; gap:15px; align-items:center;">
+                      <div style="font-size:2rem;">${isCritical ? '⚠️' : '💡'}</div>
+                      <div>
+                          <h4 style="margin:0; color:${textColor};">${title}</h4>
+                          <p style="margin:5px 0; font-size:0.95rem; color:${textColor};">${message}</p>
+                          <button onclick="generateExternalPosting()" id="gen-post-btn" style="background:${btnColor}; padding:8px 16px; font-size:0.85rem; margin-top:10px; color:white; border:none; border-radius:6px; cursor:pointer;">
+                              Generate External Job Advertisement
+                          </button>
+                      </div>
+                  </div>
+                  <div id="generated-posting-area" style="margin-top:15px; display:none;">
+                      <label style="color:${textColor};">AI-Drafted External Ad</label>
+                      <textarea id="external-post-text" style="height:220px; background:white; width:100%; margin-top:10px; padding:12px; border:1px solid ${borderColor}; border-radius:8px; font-size:14px;"></textarea>
+                      <button class="secondary" onclick="copyPosting()" style="margin-top:10px;">Copy to Clipboard</button>
+                  </div>
+              `;
+              
+              // Prepend keeps the recommendation at the top, and appending new pages drops cards *below* it.
+              if (allCandidates.length === 0) {
+                  list.appendChild(advertCard);
+              } else {
+                  list.prepend(advertCard);
+              }
+          }
 
           toggleUI("step3");
         } catch (e) {
@@ -605,49 +642,47 @@
         }
       }
 
-        // Support Functions for External Posting
-        async function generateExternalPosting() {
-            const btn = document.getElementById('gen-post-btn');
-            const area = document.getElementById('generated-posting-area');
-            const textOutput = document.getElementById('external-post-text');
-            
-            const title = document.getElementById('verify-title').value;
-            const jdContext = document.getElementById('verify-detailed-jd').value;
+      // Support Functions for External Posting
+      async function generateExternalPosting() {
+          const btn = document.getElementById('gen-post-btn');
+          const area = document.getElementById('generated-posting-area');
+          const textOutput = document.getElementById('external-post-text');
+          
+          const title = document.getElementById('verify-title').value;
+          const jdContext = document.getElementById('verify-detailed-jd').value;
 
-            btn.innerText = "✍️ Crafting BMW Ad...";
-            btn.disabled = true;
+          btn.innerText = "✍️ Crafting BMW Ad...";
+          btn.disabled = true;
 
-            try {
-                const res = await fetch(`${API_BASE}/api/generate-ad`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ 
-                        title: title,
-                        jd_context: jdContext 
-                    })
-                });
-                const data = await res.json();
-                
-                // Use the new 'ad_text' key
-                textOutput.value = data.ad_text || "Error generating content.";
-                area.style.display = 'block';
-                btn.style.display = 'none';
-                
-                // Force height so the whole long ad is visible
-                textOutput.style.height = "600px";
-            } catch (e) {
-                console.error(e);
-                btn.innerText = "Generate External Posting";
-                btn.disabled = false;
-            }
-        }
+          try {
+              const res = await fetch(`${API_BASE}/api/generate-ad`, {
+                  method: 'POST',
+                  headers: {'Content-Type': 'application/json'},
+                  body: JSON.stringify({ 
+                      title: title,
+                      jd_context: jdContext 
+                  })
+              });
+              const data = await res.json();
+              
+              textOutput.value = data.ad_text || "Error generating content.";
+              area.style.display = 'block';
+              btn.style.display = 'none';
+              
+              textOutput.style.height = "600px";
+          } catch (e) {
+              console.error(e);
+              btn.innerText = "Generate External Posting";
+              btn.disabled = false;
+          }
+      }
 
-        function copyPosting() {
-            const copyText = document.getElementById("external-post-text");
-            copyText.select();
-            document.execCommand("copy");
-            alert("Job advertisement copied to clipboard!");
-        }
+      function copyPosting() {
+          const copyText = document.getElementById("external-post-text");
+          copyText.select();
+          document.execCommand("copy");
+          alert("Job advertisement copied to clipboard!");
+      }
 
       function toggleUI(step, text = "") {
         const steps = [

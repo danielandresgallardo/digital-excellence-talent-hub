@@ -9,7 +9,7 @@ load_dotenv()
 # Local Imports
 from ai.jd_agent import run_jd_agent, get_client
 from ai.cv_agent import score_single_candidate
-from db.db_functions import get_closest_candidates, get_all_candidates
+from db.db_functions import get_candidate_count, get_closest_candidates, get_all_candidates
 
 app = Flask(__name__)
 CORS(app)
@@ -97,8 +97,13 @@ def rank_candidates():
         )
         query_vec = res.embeddings[0].values
 
-        print(f"[DEBUG] Querying Supabase for Top 3 candidates...")
-        top_candidates = get_closest_candidates(query_vec, k=3)
+        num_of_candidates = get_candidate_count()
+        if num_of_candidates <= 30:
+            num_top_candidates = num_of_candidates//2
+        else:
+            num_top_candidates = 15
+        print(f"[DEBUG] Querying Supabase for Top candidates...")
+        top_candidates = get_closest_candidates(query_vec, k=num_top_candidates)
         print(f"[DEBUG] Supabase returned {len(top_candidates)} raw candidates.")
 
         if not top_candidates:
@@ -112,7 +117,16 @@ def rank_candidates():
 
         async def run_scoring():
             print(f"[DEBUG] Deep Scoring started for {len(top_candidates)} candidates...")
-            tasks = [score_single_candidate(c, verified_criteria) for c in top_candidates]
+            
+            # This limits the async loop to only run 3 API calls at a time
+            sem = asyncio.Semaphore(3) 
+
+            async def bounded_scoring(c):
+                async with sem:
+                    await asyncio.sleep(0.5) 
+                    return await score_single_candidate(c, verified_criteria)
+
+            tasks = [bounded_scoring(c) for c in top_candidates]
             return await asyncio.gather(*tasks)
         
         results_raw = asyncio.run(run_scoring())
