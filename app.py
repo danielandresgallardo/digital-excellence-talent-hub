@@ -18,45 +18,48 @@ CORS(app)
 def serve_frontend():
     return send_file('index.html')
 
-# --- STEP 1: PARSE THE JD ---
+# --- STEP 1: PARSE THE LEADERSHIP MANDATE ---
 @app.route('/api/parse-jd', methods=['POST'])
 def parse_jd():
     data = request.json
     jd_text = data.get('job_description')
     try:
-        print(f"\n[DEBUG] --- Step 1: Agent 1 (Parser) starting ---")
+        print(f"\n[DEBUG] --- Step 1: Agent 1 (Executive Parser) starting ---")
         print(f"[DEBUG] Input Text Length: {len(jd_text)}")
-        criteria_str, _ = run_jd_agent(jd_text)
-        print(f"[DEBUG] Parser Output: {criteria_str[:100]}...") # Print first 100 chars
+        # Instructing the parser to look through an executive lens
+        executive_context = f"EXECUTIVE SEARCH CONTEXT (Board/SVP/VP Level): {jd_text}"
+        criteria_str, _ = run_jd_agent(executive_context)
+        print(f"[DEBUG] Parser Output: {criteria_str[:100]}...") 
         return jsonify(json.loads(criteria_str))
     except Exception as e:
         print(f"[DEBUG] Step 1 Error: {e}")
         return jsonify({"error": str(e)}), 500
 
-# --- STEP 2: DISCOVERY CHAT ---
+# --- STEP 2: STRATEGIC DISCOVERY CHAT ---
 @app.route('/api/chat-discovery', methods=['POST'])
 def chat_discovery():
     data = request.json
     history = data.get('history', [])
     jd_text = data.get('job_description')
     
-    print(f"\n[DEBUG] --- Step 1.5: Discovery Chat Turn ---")
+    print(f"\n[DEBUG] --- Step 1.5: Executive Discovery Chat Turn ---")
     print(f"[DEBUG] History Length: {len(history)}")
 
     prompt = f"""
-    You are a Senior Recruitment Consultant at BMW. You are talking to a Hiring Manager.
-    Your goal is precision. A vague JD leads to poor talent matches. 
+    You are a Strategic Leadership Consultant for BMW Executive HR. 
+    You are advising the 'HR for Senior Executives' department on a Board/VP level appointment.
+    Your goal is absolute alignment. A vague mandate leads to poor executive successions.
     
-    CRITICAL: For Internships and Junior roles, "Python" is not enough. You must know the 
-    application domain (e.g., Computer Vision, DevOps, Web, or Data Science).
+    CRITICAL: For Board, SVP, and VP roles, general experience is not enough. You must know the 
+    strategic mandate (e.g., Turnaround, M&A Integration, Digital Transformation, Market Expansion).
 
     INPUT DATA: {jd_text}
     HISTORY: {history}
 
     DIAGNOSTIC CRITERIA:
-    1. ROLE TYPE: Technical/Specialized, Intern/Junior, or General/Support?
-    2. SUFFICIENCY: Is there enough context to generate a 200-word *specific* summary?
-    3. DECISION LOGIC: Return 'READY' if sufficient, 'CHAT' otherwise.
+    1. STRATEGIC MANDATE: Is the core business mission clearly defined?
+    2. SCOPE: Is the P&L responsibility (€) or global oversight scale clear?
+    3. DECISION LOGIC: Return 'READY' if sufficient context exists, 'CHAT' otherwise to ask the Consultant for these missing executive details.
 
     Return ONLY JSON with "status" and "message".
     """
@@ -74,14 +77,14 @@ def chat_discovery():
         print(f"[ERROR] Discovery: {e}")
         return jsonify({"status": "READY"})
 
-# --- STEP 3: RANK BASED ON VERIFIED DATA ---
+# --- STEP 3: RANK BASED ON STRATEGIC FIT ---
 @app.route('/api/rank-candidates', methods=['POST'])
 def rank_candidates():
     data = request.json
     verified_criteria = data.get('criteria') 
     urgency = int(data.get('urgency', 5))
 
-    print(f"\n[DEBUG] --- Step 2: Ranking & Vector Search ---")
+    print(f"\n[DEBUG] --- Step 2: Executive Ranking & Search ---")
     print(f"[DEBUG] Urgency Level: {urgency}")
 
     if not verified_criteria:
@@ -102,6 +105,7 @@ def rank_candidates():
             num_top_candidates = num_of_candidates//2
         else:
             num_top_candidates = 15
+            
         print(f"[DEBUG] Querying Supabase for Top candidates...")
         top_candidates = get_closest_candidates(query_vec, k=num_top_candidates)
         print(f"[DEBUG] Supabase returned {len(top_candidates)} raw candidates.")
@@ -112,19 +116,20 @@ def rank_candidates():
                 "status": "success", 
                 "candidate_scores": [],
                 "suggest_external": True,
-                "recommendation_type": "CRITICAL" if urgency > 7 else "STRATEGIC"
+                "recommendation_type": "CRITICAL" if urgency > 8 else "STRATEGIC"
             })
 
         async def run_scoring():
             print(f"[DEBUG] Deep Scoring started for {len(top_candidates)} candidates...")
             
-            # This limits the async loop to only run 3 API calls at a time
             sem = asyncio.Semaphore(3) 
 
             async def bounded_scoring(c):
                 async with sem:
                     await asyncio.sleep(0.5) 
-                    return await score_single_candidate(c, verified_criteria)
+                    # Point the agent to look for executive leadership
+                    exec_prompt = f"EVALUATE FOR EXECUTIVE LEADERSHIP (SVP/VP/Board): {verified_criteria}"
+                    return await score_single_candidate(c, exec_prompt)
 
             tasks = [bounded_scoring(c) for c in top_candidates]
             return await asyncio.gather(*tasks)
@@ -139,17 +144,19 @@ def rank_candidates():
                 
                 raw_score = ai_analysis.get("fit_score", 0)
                 try:
-                    # Convert to string, remove '%', and cast to int
                     clean_score = int(str(raw_score).replace('%', '').strip())
                 except ValueError:
                     clean_score = 0
 
+                # Fallback safely to 'skills' if your DB hasn't been updated to 'leadership_competencies' yet
+                exec_skills = original_meta.get("leadership_competencies", original_meta.get("skills", []))[:5]
+
                 enriched_result = {
-                    "full_name": original_meta.get("full_name", "Internal Candidate"),
-                    "current_title": original_meta.get("current_title", "Specialist"),
+                    "full_name": original_meta.get("full_name", "Confidential Candidate"),
+                    "current_title": original_meta.get("current_title", "Senior Executive"),
                     "years_experience": original_meta.get("years_experience", "N/A"),
-                    "location": original_meta.get("location") or "Munich (Main)",
-                    "skills": original_meta.get("skills", [])[:5],
+                    "location": original_meta.get("location") or "Munich HQ",
+                    "skills": exec_skills,
                     "fit_score": clean_score,
                     "tradeoff_reasoning": ai_analysis.get("tradeoff_reasoning", "No reasoning provided.")
                 }
@@ -160,15 +167,15 @@ def rank_candidates():
 
         parsed_results.sort(key=lambda x: x.get('fit_score', 0), reverse=True)
         
-        # Calculate max score for external logic
         max_score = parsed_results[0]['fit_score'] if parsed_results else 0
     
         suggest_external = False
         recommendation_type = None
 
-        if not parsed_results or max_score < 70:
+        # Raised threshold to 75% and Urgency to 8 for the Board-level standard
+        if not parsed_results or max_score < 75:
             suggest_external = True
-            recommendation_type = "CRITICAL" if urgency > 7 else "STRATEGIC"
+            recommendation_type = "CRITICAL" if urgency > 8 else "STRATEGIC"
             print(f"[DEBUG] Quality threshold not met ({max_score}%). Suggesting external ({recommendation_type}).")
 
         print(f"[DEBUG] Final Response: {len(parsed_results)} candidates, suggest_external={suggest_external}")
@@ -184,6 +191,7 @@ def rank_candidates():
         print(f"[DEBUG] Step 2 Exception: {e}")
         return jsonify({"error": str(e)}), 500
 
+# --- STEP 4: EXECUTIVE BRANDING AD GENERATOR ---
 @app.route('/api/generate-ad', methods=['POST'])
 def generate_ad():
     data = request.json
@@ -191,16 +199,16 @@ def generate_ad():
     jd_context = data.get('jd_context')
     
     prompt = f"""
-    Act as a Senior Employer Branding Specialist at BMW Group. 
-    Convert these internal requirements into a FULL-LENGTH, high-energy LinkedIn Job Posting.
+    Act as a Senior Executive Branding Specialist for BMW Group Board of Management. 
+    Convert these strategic requirements into a highly professional Executive Job Advertisement.
     
     STRUCTURE REQUIREMENTS:
-    - HEADER: "About the job"
-    - BRAND HOOK: "THE BEST {title} IN THEORY - AND IN PRACTICE. SHARE YOUR PASSION."
-    - INTRO: 4-5 sentences about BMW's culture of innovation and taking ideas from the drawing board to the road.
-    - SECTION: "What awaits you?" (Provide 7 detailed, sophisticated bullet points using words like 'Furthermore', 'Moreover', 'In addition').
-    - SECTION: "What should you bring along?" (Detailed bullets for Education, Tech Stack, and Mindset).
-    - SECTION: "What do we offer?" (List: Mentoring, Mobile work, Flexible hours, Fair compensation, Student apartments).
+    - HEADER: "About the Position"
+    - BRAND HOOK: "THE BEST {title.upper()} IN THEORY - AND IN PRACTICE. SHARE YOUR PASSION."
+    - THE VISION: 4-5 sentences about BMW's vision for global leadership and premium mobility.
+    - YOUR MISSION: (P&L Responsibility, strategic transformation goals, stakeholder management).
+    - YOUR PROFILE: (Executive track record, global mindset, intercultural leadership).
+    - OUR OFFER: (Long-term impact, executive benefits, BMW leadership culture).
     - FOOTER: Standard BMW equal opportunity and selection process statement.
 
     DATA:
@@ -212,7 +220,6 @@ def generate_ad():
     
     client = get_client()
     try:
-        # Using a higher temperature (0.7) makes the writing more "creative" and less "summary-like"
         response = client.models.generate_content(
             model='gemini-3.1-flash-lite-preview',
             contents=prompt

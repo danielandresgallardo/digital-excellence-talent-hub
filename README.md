@@ -34,7 +34,8 @@ The **Digital Excellence Talent Hub** is an advanced multi-agent HR tool designe
 ### 2. Environment Variables
 Create a `.env` file in the root directory:
 ```env
-GEMINI_KEY_SY=your_gemini_api_key
+GEMINI_KEY_SY=your_gemini_api_key_1
+GEMINI_KEY_CV=your_gemini_api_key_2
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_KEY=your_supabase_anon_key
 ```
