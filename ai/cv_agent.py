@@ -17,7 +17,7 @@ async def score_single_candidate(candidate, criteria_json):
     Return ONLY valid JSON with these EXACT keys:
     {{
       "candidate_id": "{candidate['id']}",
-      "fit_score": 85,
+      "fit_score": "score from 0 to 100 indicating overall fit for the role",
       "tradeoff_reasoning": "Explain why they fit or the risks involved."
     }}
     """
