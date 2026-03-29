@@ -47,8 +47,6 @@ PROFESSIONS = {
     "Homologation Engineer": "Engineering",
     "Regulatory Engineer": "Engineering",
     "Sustainability Engineer": "Engineering",
-    "Materials Engineer": "Engineering",
-
     "Production Operator": "Operations",
     "Assembly Technician": "Operations",
     "Manufacturing Engineer": "Operations",
@@ -63,7 +61,6 @@ PROFESSIONS = {
     "Press Shop Specialist": "Operations",
     "Shift Supervisor": "Operations",
     "Plant Operations Manager": "Operations",
-
     "Supply Chain Planner": "Operations",
     "Logistics Specialist": "Operations",
     "Inbound Logistics Coordinator": "Operations",
@@ -73,19 +70,15 @@ PROFESSIONS = {
     "Supplier Development Manager": "Operations",
     "Demand Planner": "Operations",
     "Inventory Analyst": "Operations",
-
     "Plant Quality Engineer": "Quality",
     "Supplier Quality Engineer": "Quality",
     "Quality Manager": "Quality",
     "Quality Inspector": "Quality",
     "Supplier Quality Manager": "Quality",
-
     "Compliance Specialist": "Legal",
     "Legal Counsel": "Legal",
-
     "Functional Safety Engineer": "Engineering",
     "Environmental Compliance Manager": "Operations",
-
     "Cybersecurity Compliance Analyst": "Data",
     "Cybersecurity Engineer": "Data",
     "Software Developer": "Data",
@@ -100,7 +93,6 @@ PROFESSIONS = {
     "Enterprise Architect": "Data",
     "DevOps Engineer": "Data",
     "Business Systems Analyst": "Data",
-
     "Automotive Designer": "Design",
     "UX Designer": "Design",
     "UI Designer": "Design",
@@ -108,31 +100,40 @@ PROFESSIONS = {
     "Design Researcher": "Design",
     "Clay Model Specialist": "Design",
     "Color and Materials Designer": "Design",
-
     "Sales Manager": "Sales",
     "Regional Sales Analyst": "Sales",
     "Dealer Network Manager": "Sales",
     "Aftersales Manager": "Sales",
     "Service Advisor": "Sales",
-
     "Customer Experience Manager": "Marketing",
     "Marketing Manager": "Marketing",
     "Product Marketing Manager": "Marketing",
     "CRM Specialist": "Marketing",
     "Market Intelligence Analyst": "Marketing",
     "Communications Manager": "Marketing",
-
     "HR Business Partner": "Human Resources",
     "Talent Acquisition Specialist": "Human Resources",
     "Learning and Development Manager": "Human Resources",
-
     "Finance Analyst": "Finance",
     "Controller": "Finance",
     "Risk Manager": "Finance",
     "Internal Auditor": "Finance",
     "Sustainability Reporting Analyst": "Finance",
-
     "Corporate Strategy Manager": "Strategy",
+    "CHRO (Chief Human Resources Officer)": "Human Resources",
+    "CTO (Chief Technology Officer)": "Engineering",
+    "VP of Engineering": "Engineering",
+    "Chief Data Officer": "Data",
+    "Head of Artificial Intelligence": "Data",
+    "Chief Product Officer": "Product",
+    "Director of Product Management": "Product",
+    "COO (Chief Operating Officer)": "Operations",
+    "VP of Supply Chain": "Operations",
+    "CMO (Chief Marketing Officer)": "Marketing",
+    "CFO (Chief Financial Officer)": "Finance",
+    "VP of Finance": "Finance",
+    "Chief Legal Officer": "Legal",
+    "VP of Sales": "Sales",
 }
 
 SENIORITY_EXP = {
