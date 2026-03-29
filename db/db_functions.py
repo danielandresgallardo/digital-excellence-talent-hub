@@ -39,7 +39,7 @@ def get_supabase_client() -> Client:
 		_supabase_client = create_client(url, key)
 	return _supabase_client
 
-def get_closest_candidates(embedding: List[float], k = 3) -> List[Dict[str, Any]]:
+def get_closest_candidates(embedding: List[float], k: int = 3) -> List[Dict[str, Any]]:
 	"""Query Supabase for the candidates with the closest embeddings to the input."""
 	client = get_supabase_client()
 	response = (
@@ -53,3 +53,9 @@ def get_all_candidates() -> List[Dict[str, Any]]:
     client = get_supabase_client()
     response = client.table("candidates").select("full_name", "current_title", "years_experience", "location", "skills", "source").execute()
     return response.data if response.data else []
+
+def get_candidate_count() -> int:
+    """Return the total number of candidates in the database."""
+    client = get_supabase_client()
+    response = client.table("candidates").select("*", count="exact", head=True).execute()
+    return response.count if response.count is not None else 0
