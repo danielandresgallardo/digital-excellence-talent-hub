@@ -2,6 +2,11 @@
 
 The **Digital Excellence Talent Hub** is an advanced multi-agent HR tool designed to assist recruitment for high-stakes scenarios. It uses Google's Gemini models and a vector database (Supabase) to perform intelligent job description analysis, iterative candidate discovery, and precision ranking of both internal and external talent.
 
+## Frontend Links
+
+- Lovable frontend GitHub: https://github.com/liulalemx/talent-compass
+- Live Lovable demo: https://talent-scout-desk.lovable.app
+
 ## 🚀 Core Features
 
 - **Multi-Agent Workflow**:
